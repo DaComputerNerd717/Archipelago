@@ -19,29 +19,28 @@ logger = logging.getLogger("SOH_OOT.Logic")
 
 
 class rule_wrapper:
-    def __init__(self, parent_region: Regions, rule: Callable[[tuple[CollectionState, Regions, "SohWorld"]], bool], world: "SohWorld"):
+    def __init__(self, parent_region: Regions, rule: Callable[[tuple[Regions, "SohWorld"]], Rule], world: "SohWorld"):
         self.parent_region = parent_region
         self.world = world
         self.rule = rule
 
     @staticmethod
-    def wrap(parent_region: Regions, rule: Callable[[tuple[CollectionState, Regions, "SohWorld"]], bool], world: "SohWorld") -> Callable[[CollectionState], bool]:
+    def wrap(parent_region: Regions, rule: Callable[[tuple[Regions, "SohWorld"]], Rule], world: "SohWorld") -> Rule:
         wrapper = rule_wrapper(parent_region, rule, world)
-        return wrapper.evaluate
+        return wrapper.evaluate()
 
-    def evaluate(self, state: CollectionState) -> bool:
-        return self.rule((state, self.parent_region, self.world))
+    def evaluate(self) -> Rule:
+        return self.rule((self.parent_region, self.world))
 
 
-def add_locations(parent_region: Regions, world: "SohWorld", locations: list[tuple[Locations, Rule | Callable[[tuple[CollectionState, Regions, "SohWorld"]], bool]]]) -> None:
+def add_locations(parent_region: Regions, world: "SohWorld", locations: list[tuple[Locations, Rule | Callable[[tuple[Regions, "SohWorld"]], Rule]]]) -> None:
     mLocations : list[tuple[str, int | None, Rule | Callable[[CollectionState], bool]]] = list()
     for loc in locations:
         locationName = str(loc[0])
         if locationName in world.included_locations:
             locationAddress = world.included_locations.pop(loc[0]).loc_id
-            
             if len(loc) > 1:
-                locationRule = rule_wrapper.wrap(parent_region, loc[1], world) if callable(loc[1]) else loc[1]
+                locationRule = loc[1]((parent_region, world)) if callable(loc[1]) else loc[1]
             else:
                 locationRule = True_()
 
@@ -58,32 +57,32 @@ def add_locations(parent_region: Regions, world: "SohWorld", locations: list[tup
             world.set_rule(location, locationRule)
 
 
-def connect_regions(parent_region: Regions, world: "SohWorld", child_regions: list[tuple[Regions, Rule | Callable[[tuple[CollectionState, Regions, "SohWorld"]], bool]]]) -> None:
+def connect_regions(parent_region: Regions, world: "SohWorld", child_regions: list[tuple[Regions, Rule | Callable[[tuple[Regions, "SohWorld"]], Rule]]]) -> None:
     parentRegion: Region = world.get_region(str(parent_region))
 
     for region in child_regions:
         childRegion = world.get_region(region[0])
         
         if len(region) > 1:
-            regionRule = rule_wrapper.wrap(parent_region, region[1], world) if callable(region[1]) else region[1]  # type: ignore # noqa
+            regionRule = region[1]((parent_region, world)) if callable(region[1]) else region[1]  # type: ignore # noqa
         else:
             regionRule = True_()
 
         world.create_entrance(parentRegion, childRegion, regionRule)
 
 
-def add_events(parent_region: Regions, world: "SohWorld", events: list[tuple[StrEnum, Events | StrEnum, Rule | Callable[[tuple[CollectionState, Regions, "SohWorld"]], bool]]]) -> None:
+def add_events(parent_region: Regions, world: "SohWorld", events: list[tuple[StrEnum, Events | StrEnum, Rule | Callable[[tuple[Regions, "SohWorld"]], Rule]]]) -> None:
     parentRegion: Region = world.get_region(str(parent_region))
 
     for event in events:
         eventName = str(event[0])
         eventItemName = str(event[1])
-        eventRule = rule_wrapper.wrap(parent_region, event[2], world) if callable(event[2]) else event[2]
+        eventRule = event[2]((parent_region, world)) if callable(event[2]) else event[2]
         
         parentRegion.add_event(eventName, eventItemName, eventRule, SohLocation, SohItem)
 
 
-def can_use(item: Items, bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_use(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     data = item_data_table
 
     if item in data:
@@ -114,7 +113,7 @@ def can_use(item: Items, bundle: tuple[CollectionState, Regions, "SohWorld"]) ->
     return has_item(item, bundle)
 
 
-def can_use_any(names: list[Items], bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_use_any(names: list[Items], bundle: tuple[Regions, "SohWorld"]) -> Rule:
     rule: Rule
     for i in range(len(names)):
         if i == 0:
@@ -124,7 +123,7 @@ def can_use_any(names: list[Items], bundle: tuple[CollectionState, Regions, "Soh
     return rule # type: ignore
 
 
-def has_item(item: Items | Events | StrEnum, bundle: tuple[CollectionState, Regions, "SohWorld"], count: int = 1) -> Rule:
+def has_item(item: Items | Events | StrEnum, bundle: tuple[Regions, "SohWorld"], count: int = 1) -> Rule:
     if item == Items.STICKS:
         return HasAll(Events.CAN_FARM_STICKS, Items.DEKU_STICK_BAG)
 
@@ -198,41 +197,39 @@ wallet_capacities: dict[Items, int] = {
     Items.TYCOON_WALLET: 999
 }
 
-def can_afford_slot(slot: str, bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
-    slot_price = bundle[2].shop_prices[slot]
+def can_afford_slot(slot: str, bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    slot_price = bundle[1].shop_prices[slot]
     return can_afford(slot_price, bundle)
 
-def can_afford(price: int, bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_afford(price: int, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     for wallet, amount in wallet_capacities.items():
         if amount >= price:
             return has_item(wallet, bundle)
     return False_()
 
 
-def scarecrows_song(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
-    state = bundle[0]
-    world = bundle[2]
+def scarecrows_song(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return ((OptionFilter(SkipScarecrowsSong, 1) & has_item(Items.FAIRY_OCARINA, bundle)
             & has_enough_ocarina_buttons(bundle, 2))
             | (has_item(Events.CHILD_SCARECROW_UNLOCKED, bundle) & has_item(Events.ADULT_SCARECROW_UNLOCKED, bundle)))
 
 
-def has_bottle(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:  # soup
-    return has_bottle_count(bundle, 1)
+def has_bottle(bundle: tuple[Regions, "SohWorld"]) -> Rule:  # soup
+    return has_bottle_count(1)
 
 
-def has_bottle_count(bundle: tuple[CollectionState, Regions, "SohWorld"], target_count: int) -> Rule:
+def has_bottle_count(target_count: int) -> Rule:
     return HasAll(Events.DELIVER_LETTER, Events.CAN_EMPTY_BIG_POES) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_BIG_POE, Items.BOTTLE_WITH_RUTOS_LETTER, count=target_count) \
             | Has(Events.DELIVER_LETTER) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_RUTOS_LETTER, count=target_count) \
             | Has(Events.CAN_EMPTY_BIG_POES) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_BIG_POE, count=target_count) \
             | HasFromList(*no_rules_bottles, count=target_count)
 
 
-def bombchu_refill(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def bombchu_refill(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return OptionFilter(BombchuDrops, 1) | HasAny(Items.BUY_BOMBCHUS10, Items.BUY_BOMBCHUS20, Events.COULD_PLAY_BOWLING, Events.CARPET_MERCHANT)
 
 
-def bombchus_enabled(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def bombchus_enabled(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return Has(Items.BOMBCHU_BAG) | Has(Items.BOMB_BAG, options=[OptionFilter(BombchuBag, 0)])
 
 
@@ -252,21 +249,21 @@ ocarina_buttons_required: dict[str, list[str]] = {
 }
 
 
-def can_play_song(song: StrEnum, bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_play_song(song: StrEnum, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return HasAll(Items.FAIRY_OCARINA, song) & (OptionFilter(ShuffleOcarinaButtons, 0) | HasAll(*ocarina_buttons_required[song]))
 
 
-def has_explosives(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def has_explosives(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link has access to explosives (bombs or bombchus)."""
     return can_use_any([Items.BOMB_BAG, Items.BOMBCHU_BAG], bundle)
 
 
-def blast_or_smash(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def blast_or_smash(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can blast or smash obstacles."""
     return has_explosives(bundle) | can_use(Items.MEGATON_HAMMER, bundle)
 
 
-def blue_fire(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def blue_fire(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link has access to blue fire."""
     return ((has_bottle(bundle) &
              (has_item(Events.CAN_ACCESS_BLUE_FIRE, bundle) |
@@ -275,12 +272,12 @@ def blue_fire(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
              OptionFilter(BlueFireArrows, 1)))
 
 
-def can_use_sword(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_use_sword(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can use any sword."""
     return can_use_any([Items.KOKIRI_SWORD, Items.MASTER_SWORD, Items.BIGGORONS_SWORD], bundle)
 
 
-def has_projectile(bundle: tuple[CollectionState, Regions, "SohWorld"], age: Ages = Ages.null) -> Rule:
+def has_projectile(bundle: tuple[Regions, "SohWorld"], age: Ages = Ages.null) -> Rule:
     """Check if Link has access to projectiles."""
     if age == Ages.CHILD:
         return has_explosives(bundle) | can_use_any([Items.FAIRY_SLINGSHOT, Items.BOOMERANG], bundle)
@@ -290,19 +287,19 @@ def has_projectile(bundle: tuple[CollectionState, Regions, "SohWorld"], age: Age
         return has_explosives(bundle) | can_use_any([Items.FAIRY_SLINGSHOT, Items.BOOMERANG, Items.HOOKSHOT, Items.FAIRY_BOW], bundle)
 
 
-def can_use_projectile(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_use_projectile(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return has_projectile(bundle)
 
 
-def can_break_mud_walls(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_break_mud_walls(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return blast_or_smash(bundle) | (can_do_trick(Tricks.BLUE_FIRE_MUD_WALLS, bundle) & blue_fire(bundle))
 
 
-def can_get_deku_baba_sticks(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_get_deku_baba_sticks(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return can_use_sword(bundle) | can_use(Items.BOOMERANG, bundle)
 
 
-def can_get_deku_baba_nuts(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_get_deku_baba_nuts(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return can_use_any([Items.FAIRY_SLINGSHOT, Items.FAIRY_BOW, Items.DINS_FIRE], bundle) | can_jump_slash(bundle) | has_explosives(bundle)
 
 
@@ -349,146 +346,144 @@ class IsChild(Rule, game="Ship of Harkinian"):
             return {self.parent_region.value: {id(self)}}
 
 #Build the rules
-def is_child(bundle: tuple[CollectionState, Regions, "SohWorld"]):
-    return IsChild(bundle[1])
+def is_child(bundle: tuple[Regions, "SohWorld"]):
+    return IsChild(bundle[0])
 
-def is_adult(bundle: tuple[CollectionState, Regions, "SohWorld"]):
-    return IsAdult(bundle[1])
+def is_adult(bundle: tuple[Regions, "SohWorld"]):
+    return IsAdult(bundle[0])
 
-def at_day(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def at_day(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return ((is_child(bundle) & has_item(Events.CHILD_CAN_PASS_TIME, bundle))
             | (is_adult(bundle) & has_item(Events.ADULT_CAN_PASS_TIME, bundle)))
     # TODO: Implement starting time of day if that ever gets added
 
 
-def at_night(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
-    return ((is_child(bundle) and has_item(Events.CHILD_CAN_PASS_TIME, bundle))
-            or (is_adult(bundle) and has_item(Events.ADULT_CAN_PASS_TIME, bundle)))
+def at_night(bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    return ((is_child(bundle) & has_item(Events.CHILD_CAN_PASS_TIME, bundle))
+            | (is_adult(bundle) & has_item(Events.ADULT_CAN_PASS_TIME, bundle)))
     # TODO: Implement starting time of day if that ever gets added
 
-def starting_age(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
-    return IsChild(bundle[1], options=[OptionFilter(StartingAge, 'child')]) | IsAdult(bundle[1], options=[OptionFilter(StartingAge, 'adult')])
+def starting_age(bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    return IsChild(bundle[0], options=[OptionFilter(StartingAge, 'child')]) | IsAdult(bundle[0], options=[OptionFilter(StartingAge, 'adult')])
 
 
-def can_damage(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_damage(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can deal damage to enemies."""
     return (can_jump_slash(bundle) |
             has_explosives(bundle) |
             can_use_any([Items.FAIRY_SLINGSHOT, Items.FAIRY_BOW, Items.DINS_FIRE], bundle))
 
 
-def can_attack(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_attack(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can attack enemies (damage or stun)."""
     return (can_damage(bundle) |
             can_use_any([Items.BOOMERANG, Items.HOOKSHOT], bundle))
 
 
-def can_standing_shield(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_standing_shield(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can use a shield for standing blocks."""
     return (can_use_any([Items.MIRROR_SHIELD, Items.DEKU_SHIELD], bundle) |
-            (is_adult(bundle) and can_use(Items.HYLIAN_SHIELD, bundle)))
+            (is_adult(bundle) & can_use(Items.HYLIAN_SHIELD, bundle)))
 
 
-def can_shield(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_shield(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can use a shield for blocking or stunning."""
     return can_use_any([Items.MIRROR_SHIELD, Items.HYLIAN_SHIELD, Items.DEKU_SHIELD], bundle)
 
 
-def take_damage(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def take_damage(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return (can_use_any([Items.BOTTLE_WITH_FAIRY, Items.NAYRUS_LOVE], bundle)
             | effective_health_above(bundle, 1))
 
 
-def can_do_trick(trick: Tricks, bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_do_trick(trick: Tricks, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     # check if we have the trick enabled, the GLITCHED item is for Universal Tracker purposes.
     return OptionFilter(EnableAllTricks, 1) | Has(Items.GLITCHED) | OptionFilter(TricksInLogic, trick.value, "contains")
-    #return (bool(bundle[2].options.enable_all_tricks.value) or trick.value in bundle[2].options.tricks_in_logic.value) or has_item(Items.GLITCHED, bundle)
+    #return (bool(bundle[1].options.enable_all_tricks.value) or trick.value in bundle[1].options.tricks_in_logic.value) or has_item(Items.GLITCHED, bundle)
 
 
-def can_get_nighttime_gs(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
-    world = bundle[2]
+def can_get_nighttime_gs(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return at_night(bundle) & (OptionFilter(SkullsSunSong, 0) | can_use(Items.SUNS_SONG, bundle))
 
 
-def can_break_pots(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_break_pots(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can break pots for items."""
     return True_()
 
 
-def can_break_crates(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_break_crates(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can break crates."""
     return True_()
 
 
-def can_break_small_crates(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_break_small_crates(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can break small crates."""
     return True_()
 
 
-def can_bonk_trees(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_bonk_trees(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can bonk trees."""
     return True_()
 
 
-def can_hit_eye_targets(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_hit_eye_targets(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can hit eye switches/targets."""
     return can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT], bundle)
 
 
-def can_stun_deku(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_stun_deku(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can stun Deku Scrubs."""
     return can_attack(bundle) | can_use(Items.NUTS, bundle) | can_reflect_nuts(bundle)
 
 
-def can_reflect_nuts(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_reflect_nuts(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can reflect Deku Nuts back at enemies."""
     return can_use(Items.DEKU_SHIELD, bundle) | (is_adult(bundle) & has_item(Items.HYLIAN_SHIELD, bundle))
 
 
-def has_fire_source_with_torch(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def has_fire_source_with_torch(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link has a fire source that can be used with a torch."""
     return has_fire_source(bundle) | can_use(Items.STICKS, bundle)
 
 
-def has_fire_source(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def has_fire_source(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link has any fire source."""
     return can_use_any([Items.DINS_FIRE, Items.FIRE_ARROW], bundle)
 
 
-def can_jump_slash_except_hammer(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_jump_slash_except_hammer(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can perform a jump slash with any sword."""
     return can_use(Items.STICKS, bundle) | can_use_sword(bundle)
 
 
-def can_jump_slash(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_jump_slash(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can perform a jump slash at all"""
     return can_jump_slash_except_hammer(bundle) | can_use(Items.MEGATON_HAMMER, bundle)
 
 
-def call_gossip_fairy_except_suns(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def call_gossip_fairy_except_suns(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return can_use_any([Items.ZELDAS_LULLABY, Items.EPONAS_SONG, Items.SONG_OF_TIME], bundle)
 
 
-def call_gossip_fairy(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def call_gossip_fairy(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return (call_gossip_fairy_except_suns(bundle) | can_use(Items.SUNS_SONG, bundle))
 
 
-def can_break_lower_hives(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_break_lower_hives(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return can_break_upper_beehives(bundle) | can_use(Items.BOMB_BAG, bundle)
 
 
-def can_break_upper_beehives(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
-    world = bundle[2]
+def can_break_upper_beehives(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return (hookshot_or_boomerang(bundle) | 
             (can_do_trick(Tricks.BOMBCHU_BEEHIVES, bundle) & can_use(Items.BOMBCHU_BAG, bundle)) |
             (OptionFilter(SlingbowBreakBeehives, 1) & (can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT], bundle))))
 
 
-def can_open_storms_grotto(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_open_storms_grotto(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return (can_use(Items.SONG_OF_STORMS, bundle) & (has_item(Items.STONE_OF_AGONY, bundle) | can_do_trick(Tricks.GROTTOS_WITHOUT_AGONY, bundle)))
 
 
-def can_hit_at_range(bundle: tuple[CollectionState, Regions, "SohWorld"],
+def can_hit_at_range(bundle: tuple[Regions, "SohWorld"],
                      distance: EnemyDistance = EnemyDistance.CLOSE,
                      wall_or_floor: bool = True, in_water: bool = False) -> Rule:
     rule = False_()
@@ -512,7 +507,7 @@ def can_hit_at_range(bundle: tuple[CollectionState, Regions, "SohWorld"],
         rule |= can_use_any([Items.FAIRY_SLINGSHOT, Items.FAIRY_BOW], bundle)
     return rule
 
-def can_kill_enemy(bundle: tuple[CollectionState, Regions, "SohWorld"], enemy: Enemies, distance: EnemyDistance = EnemyDistance.CLOSE,
+def can_kill_enemy(bundle: tuple[Regions, "SohWorld"], enemy: Enemies, distance: EnemyDistance = EnemyDistance.CLOSE,
                    wall_or_floor: bool = True, quantity: int = 1, timer: bool = False, in_water: bool = False) -> Rule:
     """
     Check if Link can kill a specific enemy at a given combat range.
@@ -576,10 +571,10 @@ def can_kill_enemy(bundle: tuple[CollectionState, Regions, "SohWorld"], enemy: E
              (can_use(Items.NUTS, bundle) | hookshot_or_boomerang(bundle) | can_standing_shield(bundle)))
 
     if enemy == Enemies.DEAD_HAND:
-        return can_use_sword(bundle) or (can_use(Items.STICKS, bundle) and can_do_trick(Tricks.BOTW_CHILD_DEADHAND, bundle))
+        return can_use_sword(bundle) | (can_use(Items.STICKS, bundle) & can_do_trick(Tricks.BOTW_CHILD_DEADHAND, bundle))
 
     if enemy == Enemies.WITHERED_DEKU_BABA:
-        return can_attack(bundle) or can_use(Items.BOOMERANG, bundle)
+        return can_attack(bundle) | can_use(Items.BOOMERANG, bundle)
 
     if enemy in [Enemies.LIKE_LIKE, Enemies.FLOORMASTER]:
         return can_damage(bundle)
@@ -683,7 +678,7 @@ def can_kill_enemy(bundle: tuple[CollectionState, Regions, "SohWorld"], enemy: E
     if enemy == Enemies.KING_DODONGO:
         return (has_boss_soul(Items.KING_DODONGOS_SOUL, bundle) & can_jump_slash(bundle) &
                 (can_use_any([Items.BOMB_BAG, Items.GORONS_BRACELET], bundle) |
-                 (can_do_trick(Tricks.DC_DODONGO_CHU, bundle) and is_adult(bundle) & can_use(Items.BOMBCHUS_5, bundle))))
+                 (can_do_trick(Tricks.DC_DODONGO_CHU, bundle) & is_adult(bundle) & can_use(Items.BOMBCHUS_5, bundle))))
 
     if enemy == Enemies.BARINADE:
         return (has_boss_soul(Items.BARINADES_SOUL, bundle)
@@ -749,7 +744,7 @@ def can_kill_enemy(bundle: tuple[CollectionState, Regions, "SohWorld"], enemy: E
         return (hookshot_or_boomerang(bundle)
                 | can_use_any([Items.FAIRY_BOW, Items.STICKS, Items.MEGATON_HAMMER, Items.DINS_FIRE], bundle)
                 | has_explosives(bundle)
-                | (take_damage(bundle) and can_use_sword(bundle)))
+                | (take_damage(bundle) & can_use_sword(bundle)))
 
     if enemy == Enemies.SHABOM:
         # RANDOTODO when you add better damage logic, you can kill this by taking hits
@@ -757,24 +752,20 @@ def can_kill_enemy(bundle: tuple[CollectionState, Regions, "SohWorld"], enemy: E
                 | can_jump_slash(bundle))
 
     if enemy == Enemies.OCTOROK:
-        rule = can_reflect_nuts(bundle) or hookshot_or_boomerang(bundle) | can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT, Items.BOMB_BAG], bundle)
+        rule = can_reflect_nuts(bundle) | hookshot_or_boomerang(bundle) | can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT, Items.BOMB_BAG], bundle)
         if wall_or_floor:
             rule |= can_use(Items.BOMBCHUS_5, bundle)
         return rule
     return False_()
 
 
-def has_boss_soul(soul: Items, bundle: tuple[CollectionState, Regions, "SohWorld"]):
-    world = bundle[2]
-    soulsanity = world.options.shuffle_boss_souls
-    if not soulsanity:
-        return True_()
-    if soul == Items.GANONS_SOUL and soulsanity == "on":
-        return True_()
-    return has_item(soul, bundle)
+def has_boss_soul(soul: Items, bundle: tuple[Regions, "SohWorld"]):
+    if soul == Items.GANONS_SOUL:
+        return OptionFilter(ShuffleBossSouls, [0, 1], "contains") | has_item(soul, bundle) #ganons soul not shuffled or we have it
+    return OptionFilter(ShuffleBossSouls, 0) | has_item(soul, bundle) #souls not shuffled or we have it
 
 
-def can_pass_enemy(bundle: tuple[CollectionState, Regions, "SohWorld"], enemy: Enemies,
+def can_pass_enemy(bundle: tuple[Regions, "SohWorld"], enemy: Enemies,
                    distance: EnemyDistance = EnemyDistance.CLOSE, wall_or_floor: bool = True) -> Rule:
     if enemy in {Enemies.GOLD_SKULLTULA, Enemies.GOHMA_LARVA, Enemies.LIZALFOS, Enemies.DODONGO, Enemies.MAD_SCRUB,
                  Enemies.KEESE, Enemies.FIRE_KEESE, Enemies.BLUE_BUBBLE, Enemies.DEAD_HAND, Enemies.DEKU_BABA,
@@ -815,30 +806,26 @@ def can_pass_enemy(bundle: tuple[CollectionState, Regions, "SohWorld"], enemy: E
     return can_kill_enemy(bundle, enemy, distance, wall_or_floor)
 
 
-def can_cut_shrubs(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_cut_shrubs(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link can cut shrubs (grass, bushes)."""
     return (can_use_sword(bundle) |
             has_explosives(bundle) |
             can_use_any([Items.BOOMERANG, Items.GORONS_BRACELET, Items.MEGATON_HAMMER], bundle))
 
 
-def hookshot_or_boomerang(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def hookshot_or_boomerang(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     """Check if Link has hookshot or boomerang."""
     return can_use_any([Items.HOOKSHOT, Items.BOOMERANG], bundle)
 
 
-def can_open_underwater_chest(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_open_underwater_chest(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return (can_do_trick(Tricks.OPEN_UNDERWATER_CHEST, bundle) &
             can_use(Items.IRON_BOOTS, bundle) &
             can_use(Items.HOOKSHOT, bundle))
 
 
-def can_open_overworld_door(key: Items, bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
-    world = bundle[2]
-    if not world.options.lock_overworld_doors:
-        return True_()
-
-    return has_item(Items.SKELETON_KEY, bundle) | has_item(key, bundle)
+def can_open_overworld_door(key: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    return OptionFilter(LockOverworldDoors, False) | has_item(Items.SKELETON_KEY, bundle) | has_item(key, bundle)
 
 
 key_to_ring: dict[Items, Items] = {
@@ -854,11 +841,11 @@ key_to_ring: dict[Items, Items] = {
 }
 
 
-def small_keys(key: Items, requiredAmount: int, bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def small_keys(key: Items, requiredAmount: int, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return HasAny(Items.SKELETON_KEY, key_to_ring[key]) | Has(key, requiredAmount)
 
 
-def can_get_enemy_drop(bundle: tuple[CollectionState, Regions, "SohWorld"], enemy: Enemies,
+def can_get_enemy_drop(bundle: tuple[Regions, "SohWorld"], enemy: Enemies,
                        distance: EnemyDistance = EnemyDistance.CLOSE, aboveLink: bool = False) -> Rule:
     if distance.value <= EnemyDistance.MASTER_SWORD_JUMPSLASH.value:
         return True_()
@@ -883,11 +870,11 @@ def can_get_enemy_drop(bundle: tuple[CollectionState, Regions, "SohWorld"], enem
                 return can_use(Items.BOOMERANG, bundle)
     return False_()
 
-def can_detonate_bomb_flowers(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_detonate_bomb_flowers(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return can_use_any([Items.FAIRY_BOW, Items.DINS_FIRE], bundle) | has_explosives(bundle)
 
 
-def can_detonate_upright_bomb_flower(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_detonate_upright_bomb_flower(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return (can_detonate_bomb_flowers(bundle)
             | has_item(Items.GORONS_BRACELET, bundle)
             | (can_do_trick(Tricks.BLUE_FIRE_MUD_WALLS, bundle)
@@ -895,34 +882,34 @@ def can_detonate_upright_bomb_flower(bundle: tuple[CollectionState, Regions, "So
                 & (effective_health_above(bundle, 1)
                      | can_use(Items.NAYRUS_LOVE, bundle))))
 
-def item_group_count_enough(bundle: tuple[CollectionState, Regions, "SohWorld"], item_group: str, count: int):
+def item_group_count_enough(item_group: str, count: int):
     return HasGroupUnique(item_group, count)
 
 #Deprecated, use item_group_count_enough
-def item_group_count(bundle: tuple[CollectionState, Regions, "SohWorld"], item_group: str) -> int:
-    state = bundle[0]
-    world = bundle[2]
+def item_group_count(bundle: tuple[Regions, "SohWorld"], item_group: str) -> int:
+    state = bundle[-1]
+    world = bundle[1]
     return state.count_group_unique(item_group, world.player)
 
 
-def has_enough_ocarina_buttons(bundle: tuple[CollectionState, Regions, "SohWorld"], amount: int) -> Rule:
+def has_enough_ocarina_buttons(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
     return OptionFilter(ShuffleOcarinaButtons, 0) | HasGroup("Ocarina Buttons", amount)
 
 #Deprecated, use has_enough_ocarina_buttons
-def ocarina_button_count(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> int:
-    world = bundle[2]
+def ocarina_button_count(bundle: tuple[Regions, "SohWorld"]) -> int:
+    world = bundle[1]
     if world.options.shuffle_ocarina_buttons:
         return item_group_count(bundle, "Ocarina Buttons")
     return 5
 
-def has_enough_stones(bundle: tuple[CollectionState, Regions, "SohWorld"], amount: int) -> Rule:
+def has_enough_stones(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
     return HasGroupUnique("Stones", amount)
 
 #Deprecated, use has_enough_stones
-def stone_count(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> int:
+def stone_count(bundle: tuple[Regions, "SohWorld"]) -> int:
     return item_group_count(bundle, "Stones")
 
-def has_enough_medallions(bundle: tuple[CollectionState, Regions, "SohWorld"], amount: int) -> Rule:
+def has_enough_medallions(amount: int) -> Rule:
     return HasGroupUnique("Medallions", amount)
 
 dungeon_events: list[Events] = [Events.DEKU_TREE_COMPLETED, Events.DODONGOS_CAVERN_COMPLETED,
@@ -931,26 +918,28 @@ dungeon_events: list[Events] = [Events.DEKU_TREE_COMPLETED, Events.DODONGOS_CAVE
                                 Events.SPIRIT_TEMPLE_COMPLETED, Events.SHADOW_TEMPLE_COMPLETED]
 
 
-def cleared_enough_dungeons(bundle: tuple[CollectionState, Regions, "SohWorld"], amount: int):
+def cleared_enough_dungeons(amount: int):
     return HasFromList(*dungeon_events, count=amount)
 
-def can_spawn_soil_skull(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
-    return is_child(bundle) and can_use(Items.BOTTLE_WITH_BUGS, bundle)
+def can_spawn_soil_skull(bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    return is_child(bundle) & can_use(Items.BOTTLE_WITH_BUGS, bundle)
 
 
-def fire_timer_above(bundle: tuple[CollectionState, Regions, "SohWorld"], amount: int) -> Rule:
+def fire_timer_above(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
     return can_use(Items.GORON_TUNIC, bundle) | (HeartsAbove(amount=int(math.ceil(amount/8))) & can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS, bundle))
 
 #Deprecated. Use fire_timer_above instead
-def fire_timer(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> int:
-    return 255 if can_use(Items.GORON_TUNIC, bundle) else ((hearts(bundle) * 8) if can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS, bundle) else 0)
+def fire_timer(bundle: tuple[Regions, "SohWorld"]) -> int:
+    return -1
+    #return 255 if can_use(Items.GORON_TUNIC, bundle) else ((hearts(bundle) * 8) if can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS) else 0)
 
-def water_timer_above(bundle: tuple[CollectionState, Regions, "SohWorld"], amount: int) -> Rule:
+def water_timer_above(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
     return can_use(Items.ZORA_TUNIC, bundle) | (HeartsAbove(amount=int(math.ceil(amount/8))) & can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS, bundle))
 
 #Deprecated. Use water_timer_above instead
-def water_timer(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> int:
-    return 255 if can_use(Items.ZORA_TUNIC, bundle) else ((hearts(bundle) * 8) if can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS, bundle) else 0)
+def water_timer(bundle: tuple[Regions, "SohWorld"]) -> int:
+    return -1
+    #return 255 if can_use(Items.ZORA_TUNIC, bundle) else ((hearts(bundle) * 8) if can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS) else 0)
 
 @dataclasses.dataclass
 class HeartsAbove(Rule, game="Ship of Harkinian"):
@@ -963,17 +952,21 @@ class HeartsAbove(Rule, game="Ship of Harkinian"):
         def _evaluate(self, state: CollectionState) -> bool:
             return state.soh_heart_count[self.player] >= amount # type: ignore
 
-def hearts(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> int:
-    state = bundle[0]
-    world = bundle[2]
+def hearts_above(bundle: tuple[Regions, "SohWorld"], amount) -> Rule:
+    return HeartsAbove(amount=amount)
+
+#Deprecated, use HeartsAbove rule
+def hearts(bundle: tuple[Regions, "SohWorld"]) -> int:
+    state = bundle[-1]
+    world = bundle[1]
     return state.soh_heart_count[world.player]  # type: ignore
 
 
-def can_open_bomb_grotto(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def can_open_bomb_grotto(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return blast_or_smash(bundle) & (has_item(Items.STONE_OF_AGONY, bundle) | can_do_trick(Tricks.GROTTOS_WITHOUT_AGONY, bundle))
 
 
-def trade_quest_step(item: Items, bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def trade_quest_step(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     # If adult trade shuffle is off, it'll automatically assume the whole trade quest is complete as soon as claim check is obtained.
     rule = OptionFilter(ShuffleAdultTradeItems, 0) & has_item(Items.CLAIM_CHECK, bundle)
     # Since the original used fallthrough, we will loop through all trade quest items after this point too
@@ -1001,8 +994,8 @@ class ItemsPlusGregEnough(Rule, game="Ship of Harkinian"):
             items.append(Items.GREG_THE_GREEN_RUPEE)
         return HasFromList(*items, count=self.target).resolve(world)
 
-def can_build_rainbow_bridge(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
-    world = bundle[2]
+def can_build_rainbow_bridge(bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    world = bundle[1]
 
     return OptionFilter(RainbowBridge, "always_open") \
          | (OptionFilter(RainbowBridge, "vanilla") & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle) & can_use(Items.LIGHT_ARROW, bundle)) \
@@ -1014,9 +1007,8 @@ def can_build_rainbow_bridge(bundle: tuple[CollectionState, Regions, "SohWorld"]
          | (OptionFilter(RainbowBridge, "greg") & Has(Items.GREG_THE_GREEN_RUPEE))
 
 
-def can_trigger_lacs(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
-    world = bundle[2]
-    gbk_setting = world.options.ganons_castle_boss_key
+def can_trigger_lacs(bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    world = bundle[1]
     return (OptionFilter(GanonsCastleBossKey, ["vanilla", "anywhere", "lacs_vanilla"]) & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle)) \
          | (OptionFilter(GanonsCastleBossKey, "lacs_stones") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_stones_required.value, items="Stones"))\
          | (OptionFilter(GanonsCastleBossKey, "lacs_medallions") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_medallions_required.value, items="Medallions")) \
@@ -1027,20 +1019,23 @@ def can_trigger_lacs(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rul
 
 
 # TODO implement EffectiveHealth(); Returns 2 for now. Requires implementing a damage multiplier option
-def effective_health_above(bundle: tuple[CollectionState, Regions, "SohWorld"], count: int) -> Rule:
+def effective_health_above(bundle: tuple[Regions, "SohWorld"], count: int) -> Rule:
     if count <= 2:
         return True_()
     else:
         return False_()
 
-def effective_health(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> int:
+def effective_health(bundle: tuple[Regions, "SohWorld"]) -> int:
     return 2
 
 
-def is_fire_loop_locked(bundle: tuple[CollectionState, Regions, "SohWorld"]) -> Rule:
+def is_fire_loop_locked(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return True_(options=[OptionFilter(SmallKeyShuffle, ["anywhere", "overworld", "any_dungeon"], operator="contains")])
 
-def can_ground_jump(bundle: tuple[CollectionState, Regions, "SohWorld"], hasBombFlower: bool = False) -> Rule:
+def is_fire_loop_unlocked(bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    return False_(options=[OptionFilter(SmallKeyShuffle, ["anywhere", "overworld", "any_dungeon"], operator="contains")], filtered_resolution=True)
+
+def can_ground_jump(bundle: tuple[Regions, "SohWorld"], hasBombFlower: bool = False) -> Rule:
     if hasBombFlower:
         return (can_do_trick(Tricks.GROUND_JUMP, bundle)
                 & can_standing_shield(bundle)
@@ -1050,7 +1045,7 @@ def can_ground_jump(bundle: tuple[CollectionState, Regions, "SohWorld"], hasBomb
                 & can_standing_shield(bundle)
                 & can_use(Items.BOMB_BAG, bundle))
 
-def can_clear_stalagmite(bundle: tuple[CollectionState, Regions, "SohWorld"]):
+def can_clear_stalagmite(bundle: tuple[Regions, "SohWorld"]):
     return can_jump_slash(bundle) | has_explosives(bundle)
 
 

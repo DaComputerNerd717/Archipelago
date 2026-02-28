@@ -1009,7 +1009,7 @@ def is_fire_loop_locked(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return True_(options=[OptionFilter(SmallKeyShuffle, ["anywhere", "overworld", "any_dungeon"], operator="in")])
 
 def is_fire_loop_unlocked(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return False_(options=[OptionFilter(SmallKeyShuffle, ["anywhere", "overworld", "any_dungeon"], operator="contains")], filtered_resolution=True)
+    return False_(options=[OptionFilter(SmallKeyShuffle, ["anywhere", "overworld", "any_dungeon"], operator="in")], filtered_resolution=True)
 
 def can_ground_jump(bundle: tuple[Regions, "SohWorld"], hasBombFlower: bool = False) -> Rule:
     if hasBombFlower:

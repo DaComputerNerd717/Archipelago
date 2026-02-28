@@ -885,32 +885,18 @@ def can_detonate_upright_bomb_flower(bundle: tuple[Regions, "SohWorld"]) -> Rule
 def item_group_count_enough(item_group: str, count: int):
     return HasGroupUnique(item_group, count)
 
-#Deprecated, use item_group_count_enough
-def item_group_count(bundle: tuple[Regions, "SohWorld"], item_group: str) -> int:
-    state = bundle[-1]
-    world = bundle[1]
-    return state.count_group_unique(item_group, world.player)
-
 
 def has_enough_ocarina_buttons(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
     return OptionFilter(ShuffleOcarinaButtons, 0) | HasGroup("Ocarina Buttons", amount)
 
-#Deprecated, use has_enough_ocarina_buttons
-def ocarina_button_count(bundle: tuple[Regions, "SohWorld"]) -> int:
-    world = bundle[1]
-    if world.options.shuffle_ocarina_buttons:
-        return item_group_count(bundle, "Ocarina Buttons")
-    return 5
 
 def has_enough_stones(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
     return HasGroupUnique("Stones", amount)
 
-#Deprecated, use has_enough_stones
-def stone_count(bundle: tuple[Regions, "SohWorld"]) -> int:
-    return item_group_count(bundle, "Stones")
 
 def has_enough_medallions(amount: int) -> Rule:
     return HasGroupUnique("Medallions", amount)
+
 
 dungeon_events: list[Events] = [Events.DEKU_TREE_COMPLETED, Events.DODONGOS_CAVERN_COMPLETED,
                                 Events.JABU_JABUS_BELLY_COMPLETED, Events.FOREST_TEMPLE_COMPLETED,
@@ -921,6 +907,7 @@ dungeon_events: list[Events] = [Events.DEKU_TREE_COMPLETED, Events.DODONGOS_CAVE
 def cleared_enough_dungeons(amount: int):
     return HasFromList(*dungeon_events, count=amount)
 
+
 def can_spawn_soil_skull(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return is_child(bundle) & can_use(Items.BOTTLE_WITH_BUGS, bundle)
 
@@ -928,18 +915,10 @@ def can_spawn_soil_skull(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 def fire_timer_above(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
     return can_use(Items.GORON_TUNIC, bundle) | (HeartsAbove(amount=int(math.ceil(amount/8))) & can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS, bundle))
 
-#Deprecated. Use fire_timer_above instead
-def fire_timer(bundle: tuple[Regions, "SohWorld"]) -> int:
-    return -1
-    #return 255 if can_use(Items.GORON_TUNIC, bundle) else ((hearts(bundle) * 8) if can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS) else 0)
 
 def water_timer_above(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
     return can_use(Items.ZORA_TUNIC, bundle) | (HeartsAbove(amount=int(math.ceil(amount/8))) & can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS, bundle))
 
-#Deprecated. Use water_timer_above instead
-def water_timer(bundle: tuple[Regions, "SohWorld"]) -> int:
-    return -1
-    #return 255 if can_use(Items.ZORA_TUNIC, bundle) else ((hearts(bundle) * 8) if can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS) else 0)
 
 @dataclasses.dataclass
 class HeartsAbove(Rule, game="Ship of Harkinian"):
@@ -955,10 +934,10 @@ class HeartsAbove(Rule, game="Ship of Harkinian"):
 def hearts_above(bundle: tuple[Regions, "SohWorld"], amount) -> Rule:
     return HeartsAbove(amount=amount)
 
-#Deprecated, use HeartsAbove rule
-def hearts(bundle: tuple[Regions, "SohWorld"]) -> int:
-    state = bundle[-1]
-    world = bundle[1]
+#use hearts_above rule for access rules
+def hearts(bundle: tuple[CollectionState, Regions | None, "SohWorld"]) -> int:
+    state = bundle[0]
+    world = bundle[2]
     return state.soh_heart_count[world.player]  # type: ignore
 
 
@@ -1024,9 +1003,6 @@ def effective_health_above(bundle: tuple[Regions, "SohWorld"], count: int) -> Ru
         return True_()
     else:
         return False_()
-
-def effective_health(bundle: tuple[Regions, "SohWorld"]) -> int:
-    return 2
 
 
 def is_fire_loop_locked(bundle: tuple[Regions, "SohWorld"]) -> Rule:

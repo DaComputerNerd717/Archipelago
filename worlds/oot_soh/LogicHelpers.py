@@ -315,7 +315,7 @@ class IsAdult(Rule, game="Ship of Harkinian"):
         parent_region: Regions
         player: int
         def _evaluate(self, state: CollectionState) -> bool:
-            return state._soh_can_reach_as_age((self.parent_region, Ages.ADULT, self.player)) # type: ignore
+            return state._soh_can_reach_as_age(self.parent_region, Ages.ADULT, self.player) # type: ignore
 
         def item_dependencies(self) -> dict[str, set[int]]:
             #For now, just update on every progression item, because it's very difficult to find the actual list

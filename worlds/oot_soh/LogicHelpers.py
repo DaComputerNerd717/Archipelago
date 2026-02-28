@@ -929,7 +929,7 @@ class HeartsAbove(Rule, game="Ship of Harkinian"):
         player: int
         amount: int
         def _evaluate(self, state: CollectionState) -> bool:
-            return state.soh_heart_count[self.player] >= amount # type: ignore
+            return state.soh_heart_count[self.player] >= self.amount # type: ignore
 
 def hearts_above(bundle: tuple[Regions, "SohWorld"], amount) -> Rule:
     return HeartsAbove(amount=amount)

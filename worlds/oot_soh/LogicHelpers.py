@@ -988,7 +988,7 @@ def can_build_rainbow_bridge(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 def can_trigger_lacs(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     world = bundle[1]
-    return (OptionFilter(GanonsCastleBossKey, ["vanilla", "anywhere", "lacs_vanilla"]) & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle)) \
+    return (OptionFilter(GanonsCastleBossKey, ["vanilla", "anywhere", "lacs_vanilla"], operator="in") & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle)) \
          | (OptionFilter(GanonsCastleBossKey, "lacs_stones") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_stones_required.value, items="Stones"))\
          | (OptionFilter(GanonsCastleBossKey, "lacs_medallions") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_medallions_required.value, items="Medallions")) \
          | (OptionFilter(GanonsCastleBossKey, "lacs_dungeon_rewards") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeon_rewards_required.value, items="Stones,Medallions")) \

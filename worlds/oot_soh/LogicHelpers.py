@@ -1025,6 +1025,21 @@ def can_clear_stalagmite(bundle: tuple[Regions, "SohWorld"]):
     return can_jump_slash(bundle) | has_explosives(bundle)
 
 
+@dataclasses.dataclass
+class CanWinTriforceHunt(Rule, game="Ship of Harkinian"):
+    def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
+        return self.Resolved(player = world.player)
+
+    class Resolved(Rule.Resolved):
+        item_name: str = str(Items.TRIFORCE_PIECE)
+        player: int
+        def _evaluate(self, state: CollectionState) -> bool:
+            return state.prog_items[self.player][self.item_name] >= cast("SohWorld", state.multiworld.worlds[self.player]).triforce_pieces_required
+
+        def item_dependencies(self) -> dict[str, set[int]]:
+            return {self.item_name: set()}
+
+
 class SohHeartState(LogicMixin):
     # tracking how many hearts the player has instead of checking the collection state every time
     soh_piece_of_heart_count: Counter[int]

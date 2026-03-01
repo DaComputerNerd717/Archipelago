@@ -39,7 +39,7 @@ def add_locations(parent_region: Regions, world: "SohWorld", locations: list[tup
         locationName = str(loc[0])
         if locationName in world.included_locations:
             locationAddress = world.included_locations.pop(loc[0]).loc_id
-            if len(loc) > 1:
+            if len(loc) > 1 and not world.options.true_no_logic:
                 locationRule = loc[1]((parent_region, world)) if callable(loc[1]) else loc[1]
             else:
                 locationRule = True_()
@@ -63,7 +63,7 @@ def connect_regions(parent_region: Regions, world: "SohWorld", child_regions: li
     for region in child_regions:
         childRegion = world.get_region(region[0])
         
-        if len(region) > 1:
+        if len(region) > 1 and not world.options.true_no_logic:
             regionRule = region[1]((parent_region, world)) if callable(region[1]) else region[1]  # type: ignore # noqa
         else:
             regionRule = True_()

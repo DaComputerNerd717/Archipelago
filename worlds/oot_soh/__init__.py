@@ -295,13 +295,7 @@ class SohWorld(World):
         generate_scrub_prices(self)
         generate_merchant_prices(self)
         set_price_rules(self)
-
-        # disregard all rules if no logic is in effect
-        if self.options.true_no_logic:
-            for entrance in self.get_entrances():
-                entrance.access_rule = lambda state: True
-            for location in self.get_locations():
-                location.access_rule = lambda state: True
+    
 
     def create_items(self) -> None:
         # these are for making the progressive items collect/remove work properly

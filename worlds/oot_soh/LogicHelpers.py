@@ -197,9 +197,6 @@ wallet_capacities: dict[Items, int] = {
     Items.TYCOON_WALLET: 999
 }
 
-def can_afford_slot(slot: str, bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    slot_price = bundle[1].shop_prices[slot]
-    return can_afford(slot_price, bundle)
 
 def can_afford(price: int, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     for wallet, amount in wallet_capacities.items():
@@ -761,7 +758,7 @@ def can_kill_enemy(bundle: tuple[Regions, "SohWorld"], enemy: Enemies, distance:
 
 def has_boss_soul(soul: Items, bundle: tuple[Regions, "SohWorld"]):
     if soul == Items.GANONS_SOUL:
-        return OptionFilter(ShuffleBossSouls, [0, 1], "contains") | has_item(soul, bundle) #ganons soul not shuffled or we have it
+        return OptionFilter(ShuffleBossSouls, [0, 1], "in") | has_item(soul, bundle) #ganons soul not shuffled or we have it
     return OptionFilter(ShuffleBossSouls, 0) | has_item(soul, bundle) #souls not shuffled or we have it
 
 

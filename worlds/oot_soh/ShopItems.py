@@ -309,9 +309,10 @@ def set_price_rules(world: "SohWorld") -> None:
     # Shop Price Rules
     for region, shop in all_shop_locations:
         for slot in shop.keys():
-            def shop_rule(bundle, s=slot): return can_afford_slot(str(s), bundle)
+            price = world.shop_prices[slot]
+            def shop_rule(bundle, p=price): return can_afford(p, bundle)
             location = world.get_location(slot)
-            world.set_rule(location, shop_rule)
+            add_rule(location, rule_wrapper.wrap(region, shop_rule, world))
 
     # Scrub Price Rules
     if world.options.shuffle_scrubs:
@@ -325,7 +326,8 @@ def set_price_rules(world: "SohWorld") -> None:
             def price_rule(bundle, p=price): return can_afford(p, bundle)
             location = world.get_location(slot)
             # Parent region shouldn't matter at all here, so just add ROOT so we don't have to make a list of all scrubs and their regions.
-            world.set_rule(location, price_rule)
+            add_rule(location, rule_wrapper.wrap(
+                Regions.ROOT, price_rule, world))
             
     # Merchant Price Rules
     if world.options.shuffle_merchants:

@@ -309,8 +309,7 @@ def set_price_rules(world: "SohWorld") -> None:
     # Shop Price Rules
     for region, shop in all_shop_locations:
         for slot in shop.keys():
-            price = world.shop_prices[slot]
-            def shop_rule(bundle, p=price): return can_afford(p, bundle)
+            def shop_rule(bundle, s=slot): return can_afford_slot(str(s), bundle)
             location = world.get_location(slot)
             add_rule(location, rule_wrapper.wrap(region, shop_rule, world))
 

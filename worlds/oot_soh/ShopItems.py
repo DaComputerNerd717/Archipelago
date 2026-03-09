@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 from worlds.generic.Rules import add_rule
 
-from .LogicHelpers import rule_wrapper, can_afford
+from .LogicHelpers import rule_wrapper, can_afford, can_afford_slot
 from .Locations import scrubs_location_table, merchants_items_location_table, scrubs_one_time_only
 from .Enums import *
 from . import SohItem
@@ -309,10 +309,9 @@ def set_price_rules(world: "SohWorld") -> None:
     # Shop Price Rules
     for region, shop in all_shop_locations:
         for slot in shop.keys():
-            price = world.shop_prices[slot]
-            def shop_rule(bundle, p=price): return can_afford(p, bundle)
+            def shop_rule(bundle, s=slot): return can_afford_slot(str(s), bundle)
             location = world.get_location(slot)
-            world.set_rule(location, rule_wrapper.wrap(region, shop_rule, world))
+            world.set_rule(location, shop_rule)
 
     # Scrub Price Rules
     if world.options.shuffle_scrubs:
@@ -326,7 +325,7 @@ def set_price_rules(world: "SohWorld") -> None:
             def price_rule(bundle, p=price): return can_afford(p, bundle)
             location = world.get_location(slot)
             # Parent region shouldn't matter at all here, so just add ROOT so we don't have to make a list of all scrubs and their regions.
-            world.set_rule(location, rule_wrapper.wrap(Regions.ROOT, price_rule, world))
+            world.set_rule(location, price_rule)
             
     # Merchant Price Rules
     if world.options.shuffle_merchants:
@@ -339,4 +338,4 @@ def set_price_rules(world: "SohWorld") -> None:
             price = world.merchant_prices[slot]
             def price_rule(bundle, p=price): return can_afford(p, bundle)
             location = world.get_location(slot)
-            world.set_rule(location, rule_wrapper.wrap(location.parent_region, price_rule, world))
+            add_rule(location, rule_wrapper.wrap(location.parent_region, price_rule, world))

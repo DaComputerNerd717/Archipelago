@@ -50,7 +50,7 @@ def set_region_rules(world: "SohWorld") -> None:
     # Locations
     add_locations(Regions.JABU_JABUS_BELLY_MAIN, world, [
         (Locations.JABU_JABUS_BELLY_DEKU_SCRUB, lambda bundle: has_item(Items.BRONZE_SCALE, bundle) & (is_child(bundle) | has_item(
-            Items.SILVER_SCALE, bundle) | can_do_trick(Tricks.JABU_ALCOVE_JUMP_DIVE, bundle) | can_use(Items.IRON_BOOTS, bundle)) & can_stun_deku(bundle)),
+            Items.SILVER_SCALE, bundle) | can_do_trick(Tricks.JABU_ALCOVE_JUMP_DIVE, bundle) | can_use(Items.IRON_BOOTS, bundle)) & can_stun_deku(bundle) & can_afford_slot(Locations.JABU_JABUS_BELLY_DEKU_SCRUB, bundle)),
         (Locations.JABU_JABUS_BELLY_BOOMERANG_CHEST, lambda bundle: has_item(
             LocalEvents.JABU_JABUS_BELLY_RUTO_IN_1F_RESCUED, bundle)),
         (Locations.JABU_JABUS_BELLY_MAP_CHEST, lambda bundle: has_item(

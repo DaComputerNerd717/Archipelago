@@ -198,7 +198,11 @@ wallet_capacities: dict[Items, int] = {
 }
 
 
-def can_afford(price: int, bundle: tuple[Regions, "SohWorld"]) -> Rule:
+def can_afford_slot(slot: Locations, bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    world = bundle[1]
+    assert slot in world.shop_prices, f'Shop location "{str(slot)}" does not have a price assigned'
+
+    price = world.shop_prices.get(slot, 500)
     for wallet, amount in wallet_capacities.items():
         if amount >= price:
             return has_item(wallet, bundle)

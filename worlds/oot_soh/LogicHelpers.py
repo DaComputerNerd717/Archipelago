@@ -83,34 +83,35 @@ def add_events(parent_region: Regions, world: "SohWorld", events: list[tuple[Str
 
 
 def can_use(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    rule : Rule = has_item(item, bundle)
     data = item_data_table
 
     if item in data:
         if data[item].adult_only:
-            return has_item(item, bundle) & is_adult(bundle)
+            rule &= is_adult(bundle)
 
         if data[item].child_only:
-            return has_item(item, bundle) & is_child(bundle)
+            rule &= is_child(bundle)
 
         if data[item].item_type == ItemType.magic:
-            return has_item(item, bundle) & has_item(Items.PROGRESSIVE_MAGIC_METER, bundle)
+            rule &= has_item(Items.PROGRESSIVE_MAGIC_METER, bundle)
 
         if data[item].item_type == ItemType.song:
-            return has_item(item, bundle) & can_play_song(item, bundle)
+            rule &= can_play_song(item, bundle)
 
     if item in (Items.FIRE_ARROW, Items.ICE_ARROW, Items.LIGHT_ARROW):
-        return has_item(item, bundle) & can_use(Items.FAIRY_BOW, bundle)
+        rule &= can_use(Items.FAIRY_BOW, bundle)
 
     if item in (Items.BOMBCHU_BAG, Items.BOMBCHUS_5, Items.BOMBCHUS_10, Items.BOMBCHUS_20):
-        return has_item(item, bundle) & bombchu_refill(bundle)
+        rule &= bombchu_refill(bundle)
 
     if item == Items.FISHING_POLE:
-        return has_item(item, bundle) & has_item(Items.CHILD_WALLET, bundle)
+        rule &= has_item(Items.CHILD_WALLET, bundle)
 
     if item == Items.EPONA:
-        return has_item(item, bundle) & is_adult(bundle) & can_use(Items.EPONAS_SONG, bundle)
+        rule &= is_adult(bundle) & can_use(Items.EPONAS_SONG, bundle)
     
-    return has_item(item, bundle)
+    return rule
 
 
 def can_use_any(names: list[Items], bundle: tuple[Regions, "SohWorld"]) -> Rule:

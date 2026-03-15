@@ -31,7 +31,7 @@ def set_region_rules(world: "SohWorld") -> None:
          Events.CAN_ACCESS_FAIRIES, lambda bundle: True_()),
         (EventLocations.WASTELAND_NUT_POT, Events.CAN_FARM_NUTS, lambda bundle: True_())
     ])
-    if world.options.shuffle_merchants.value == 0 | world.options.shuffle_merchants.value == 1:
+    if world.options.shuffle_merchants.value == 0 or world.options.shuffle_merchants.value == 1:
         add_events(Regions.HAUNTED_WASTELAND, world, [
             (EventLocations.WASTELAND_CARPET_SALESMAN_STORE, Events.CARPET_MERCHANT, lambda bundle: has_item(
                 Items.ADULT_WALLET, bundle) & (can_jump_slash(bundle) | can_use(Items.HOVER_BOOTS, bundle)))

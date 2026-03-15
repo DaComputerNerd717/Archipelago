@@ -65,7 +65,7 @@ def set_region_rules(world: "SohWorld") -> None:
          lambda bundle: is_child(bundle) & can_use(Items.MAGIC_BEAN, bundle)),
     ])
     # Only when selling vanilla item (beans)
-    if world.options.shuffle_merchants.value == 0 | world.options.shuffle_merchants.value == 2:
+    if world.options.shuffle_merchants.value == 0 or world.options.shuffle_merchants.value == 2:
         add_events(Regions.ZORA_RIVER, world, [
             (EventLocations.MAGIC_BEAN_SALESMAN_SHOP, Events.CAN_BUY_BEANS,
              lambda bundle: is_child(bundle) & has_item(Items.CHILD_WALLET, bundle))

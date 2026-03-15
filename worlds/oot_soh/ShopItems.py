@@ -242,16 +242,20 @@ def fill_shop_items(world: "SohWorld") -> None:
         world.shop_vanilla_items[slot] = location.item.name
 
 
-def no_shop_shuffle(world: "SohWorld") -> None:
+def no_shop_shuffle(world: "SohWorld") -> dict[Locations, int]:
     # put everything in its place as plain vanilla
     new_shop_prices = dict[Locations, int]()
     for region, shop in all_shop_locations:
         for slot, item in shop.items():
-            new_shop_prices[slot] = vanilla_shop_prices[item]
-            world.get_location(slot).place_locked_item(world.create_item(item))
-            world.get_location(slot).address = None
-            world.shop_vanilla_items[slot] = item.value
-    update_shop_prices(world, new_shop_prices)
+            # Try to place in the location. If locations aren't created yet, just set the price
+            try:
+                location = world.get_location(slot)
+                world.get_location(slot).place_locked_item(world.create_item(item))
+                world.get_location(slot).address = None  
+                world.shop_vanilla_items[slot] = item.value
+            except:
+                new_shop_prices[slot] = vanilla_shop_prices[item]
+    return new_shop_prices
 
 def update_shop_prices(world: "SohWorld", new_prices: dict[Locations, int]) -> None:
     world.shop_prices.update(new_prices)
@@ -271,7 +275,7 @@ def generate_prices(world: "SohWorld") -> None:
 def generate_shop_prices(world: "SohWorld") -> dict[Locations, int]:
     prices = dict[Locations, int]()
     if not world.options.shuffle_shops:
-        return prices
+        return no_shop_shuffle(world)
 
     min_shop_price = world.options.shuffle_shops_minimum_price.value
     max_shop_price = world.options.shuffle_shops_maximum_price.value

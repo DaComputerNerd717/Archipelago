@@ -292,7 +292,7 @@ def set_region_rules(world: "SohWorld") -> None:
     connect_regions(Regions.GANONS_TOWER_ENTRYWAY, world, [
         (Regions.GANONS_CASTLE_LOBBY, lambda bundle: True_()),
         (Regions.GANONS_TOWER_FLOOR_1, lambda bundle: OptionFilter(GanonsTrials, "skip") #world.options.ganons_trials == "skip" 
-                        | HasAll(*[(str(trial_mapping[trial if isinstance(trial, GanonTrialClears) else GanonTrialClears[trial]])) for trial in world.ganons_trials]))
+                        | HasAll(*[(str(trial_mapping[trial])) for trial in world.ganons_trials]))
     ])
 
     # Ganon's Tower Floor 1

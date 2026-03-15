@@ -106,9 +106,6 @@ class SohWorld(World):
         # for use with Universal Tracker, doesn't do anything otherwise
         setup_options_from_slot_data(self)
 
-        # Set price rules in advance
-        generate_prices(self)
-
         if self.options.true_no_logic and not self.settings.allow_true_no_logic:
             raise OptionError(f"Player {self.player_name} enabled True No Logic, but the corresponding host.yaml "
                               "setting has not been enabled. Either have them disable that option, or enable it in "
@@ -215,6 +212,9 @@ class SohWorld(World):
             if self.options.ganons_trials_count.value < 6:
                 self.random.shuffle(self.ganons_trials)
                 self.ganons_trials = self.ganons_trials[:self.options.ganons_trials_count.value]
+
+        # Set price rules in advance
+        generate_prices(self)
 
         # These things get modified after we call setup_options_from_slot_data, so we need to set them here.
         if self.using_ut:

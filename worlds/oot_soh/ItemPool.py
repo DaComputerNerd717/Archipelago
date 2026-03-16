@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from .Enums import *
 from .Items import item_data_table, filler_items, filler_bottles, SohItem
 from .Regions import map_and_compass_vanilla_mapping, small_key_vanilla_mapping, dungeon_boss_key_vanilla_mapping
-from .LogicHelpers import key_to_ring, hearts
+from .LogicHelpers import key_to_ring
 from .KeyShuffle import small_key_option_matching
 from BaseClasses import ItemClassification
 from .SongShuffle import song_vanilla_locations, get_shuffled_songs
@@ -299,7 +299,7 @@ def create_item_pool(world: "SohWorld") -> None:
     elif world.options.item_pool == "minimal":
         max_hearts = 3
 
-    starting_hearts: int = hearts((world.multiworld.state, None, world))
+    starting_hearts: int = world.multiworld.state.soh_heart_count[world.player]
     if starting_hearts < max_hearts:
         items_to_create[Items.PIECE_OF_HEART_WINNER] = 1
         items_to_create[Items.PIECE_OF_HEART] = 3

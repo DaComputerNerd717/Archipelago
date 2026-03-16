@@ -936,12 +936,6 @@ class HeartsAbove(Rule, game="Ship of Harkinian"):
 def hearts_above(bundle: tuple[Regions, "SohWorld"], amount) -> Rule:
     return HeartsAbove(amount=amount)
 
-#use hearts_above rule for access rules
-def hearts(bundle: tuple[CollectionState, Regions | None, "SohWorld"]) -> int:
-    state = bundle[0]
-    world = bundle[2]
-    return state.soh_heart_count[world.player]  # type: ignore
-
 
 def can_open_bomb_grotto(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return blast_or_smash(bundle) & (has_item(Items.STONE_OF_AGONY, bundle) | can_do_trick(Tricks.GROTTOS_WITHOUT_AGONY, bundle))

@@ -199,15 +199,31 @@ wallet_capacities: dict[Items, int] = {
 }
 
 
-def can_afford_slot(slot: Locations, bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    world = bundle[1]
-    assert slot in world.shop_prices, f'Shop location "{str(slot)}" does not have a price assigned'
+@dataclasses.dataclass
+class CanAffordSlot(Rule, game="Ship of Harkinian"):
+    location: Locations
 
-    price = world.shop_prices.get(slot, 500)
-    for wallet, amount in wallet_capacities.items():
-        if amount >= price:
-            return has_item(wallet, bundle)
-    return False_()
+    def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
+        return self.Resolved(location = self.location, player = world.player)
+
+    class Resolved(Rule.Resolved):
+        location: Locations
+        player: int
+        def _evaluate(self, state: CollectionState) -> bool:
+            world = state.multiworld.worlds[self.player]
+            assert self.location in world.shop_prices, f'Shop location "{str(self.location)}" does not have a price assigned'
+
+            price = world.shop_prices.get(self.location, 500)
+            for wallet, amount in wallet_capacities.items():
+                if amount >= price:
+                    return Has(str(wallet)).resolve(world)._evaluate(state)
+
+        def item_dependencies(self) -> dict[str, set[int]]:
+            return {str(Items.PROGRESSIVE_WALLET): set()}
+
+
+def can_afford_slot(slot: Locations, bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    return CanAffordSlot(slot)
 
 
 def scarecrows_song(bundle: tuple[Regions, "SohWorld"]) -> Rule:

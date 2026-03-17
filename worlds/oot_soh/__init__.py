@@ -213,9 +213,6 @@ class SohWorld(World):
                 self.random.shuffle(self.ganons_trials)
                 self.ganons_trials = self.ganons_trials[:self.options.ganons_trials_count.value]
 
-        # Set price rules in advance
-        generate_prices(self)
-
         # These things get modified after we call setup_options_from_slot_data, so we need to set them here.
         if self.using_ut:
             self.ganons_trials = self.passthrough.get("required_trials", 6)
@@ -291,7 +288,8 @@ class SohWorld(World):
         return prefill_state
     
     def set_rules(self) -> None:
-        pass
+        # Set price rules in advance
+        generate_prices(self)
 
 
     def create_items(self) -> None:

@@ -170,7 +170,7 @@ item_data_table: dict[Items, SohItemData] = {
     Items.PURPLE_RUPEE: SohItemData(138, IC.filler, 0),
     Items.HUGE_RUPEE: SohItemData(139, IC.filler, 0),
     # 35
-    Items.PIECE_OF_HEART: SohItemData(140, IC.useful | IC.skip_balancing, 0, item_groups=["Hearts", "Heart"]),
+    Items.PIECE_OF_HEART: SohItemData(140, IC.progression_skip_balancing, 0, item_groups=["Hearts", "Heart"]),
     # 8
     Items.HEART_CONTAINER: SohItemData(141, IC.progression_skip_balancing, 0, item_groups=["Hearts", "Heart"]),
     Items.ICE_TRAP: SohItemData(142, IC.trap, 0, item_groups=["Traps", "Trap"]),
@@ -193,7 +193,7 @@ item_data_table: dict[Items, SohItemData] = {
     # Items.GREEN_POTION_REFILL: SohItemData( 159, IC.filler, 0 ),
     # Items.BLUE_POTION_REFILL: SohItemData( 160, IC.filler, 0 ),
     # 1
-    Items.PIECE_OF_HEART_WINNER: SohItemData(161, IC.useful | IC.skip_balancing, 0, item_groups=["Hearts", "Heart"]),
+    Items.PIECE_OF_HEART_WINNER: SohItemData(161, IC.progression_skip_balancing, 0, item_groups=["Hearts", "Heart"]),
     # Items.TREASURE_GAME_GREEN_RUPEE: SohItemData( 162, IC.filler, 0 ),
     Items.BUY_DEKU_NUTS5: SohItemData(None, IC.progression, 0),
     Items.BUY_ARROWS30: SohItemData(None, IC.progression, 0),

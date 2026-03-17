@@ -932,6 +932,9 @@ class HeartsAbove(Rule, game="Ship of Harkinian"):
         amount: int
         def _evaluate(self, state: CollectionState) -> bool:
             return state.soh_heart_count[self.player] >= self.amount # type: ignore
+        
+        def item_dependencies(self) -> dict[str, set[int]]:
+            return {str(item_id): {id(self)} for item_id in (Items.HEART_CONTAINER, Items.PIECE_OF_HEART, Items.PIECE_OF_HEART_WINNER)}
 
 def hearts_above(bundle: tuple[Regions, "SohWorld"], amount) -> Rule:
     return HeartsAbove(amount=amount)

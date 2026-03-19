@@ -70,13 +70,13 @@ def set_region_rules(world: "SohWorld") -> None:
     # Locations
     add_locations(Regions.GANONS_CASTLE_DEKU_SCRUBS, world, [
         (Locations.GANONS_CASTLE_DEKU_SCRUB_CENTER_LEFT,
-         lambda bundle: can_stun_deku(bundle)),
+         lambda bundle: can_stun_deku(bundle) & can_afford_slot(Locations.GANONS_CASTLE_DEKU_SCRUB_CENTER_LEFT, bundle)),
         (Locations.GANONS_CASTLE_DEKU_SCRUB_CENTER_RIGHT,
-         lambda bundle: can_stun_deku(bundle)),
+         lambda bundle: can_stun_deku(bundle) & can_afford_slot(Locations.GANONS_CASTLE_DEKU_SCRUB_CENTER_RIGHT, bundle)),
         (Locations.GANONS_CASTLE_DEKU_SCRUB_RIGHT,
-         lambda bundle: can_stun_deku(bundle)),
+         lambda bundle: can_stun_deku(bundle) & can_afford_slot(Locations.GANONS_CASTLE_DEKU_SCRUB_RIGHT, bundle)),
         (Locations.GANONS_CASTLE_DEKU_SCRUB_LEFT,
-         lambda bundle: can_stun_deku(bundle)),
+         lambda bundle: can_stun_deku(bundle) & can_afford_slot(Locations.GANONS_CASTLE_DEKU_SCRUB_LEFT, bundle)),
         (Locations.GANONS_CASTLE_SCRUBS_FAIRY1, lambda bundle: True_()),
         (Locations.GANONS_CASTLE_SCRUBS_FAIRY2, lambda bundle: True_()),
         (Locations.GANONS_CASTLE_SCRUBS_FAIRY3, lambda bundle: True_()),
@@ -292,7 +292,7 @@ def set_region_rules(world: "SohWorld") -> None:
     connect_regions(Regions.GANONS_TOWER_ENTRYWAY, world, [
         (Regions.GANONS_CASTLE_LOBBY, lambda bundle: True_()),
         (Regions.GANONS_TOWER_FLOOR_1, lambda bundle: OptionFilter(GanonsTrials, "skip") #world.options.ganons_trials == "skip" 
-                        | HasAll(*[(str(trial_mapping[trial if isinstance(trial, GanonTrialClears) else GanonTrialClears[trial]])) for trial in world.ganons_trials]))
+                        | HasAll(*[(str(trial_mapping[trial])) for trial in world.ganons_trials]))
     ])
 
     # Ganon's Tower Floor 1

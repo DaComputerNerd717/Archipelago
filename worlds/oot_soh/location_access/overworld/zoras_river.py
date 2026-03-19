@@ -65,7 +65,7 @@ def set_region_rules(world: "SohWorld") -> None:
          lambda bundle: is_child(bundle) & can_use(Items.MAGIC_BEAN, bundle)),
     ])
     # Only when selling vanilla item (beans)
-    if world.options.shuffle_merchants.value == 0 | world.options.shuffle_merchants.value == 2:
+    if world.options.shuffle_merchants.value == 0 or world.options.shuffle_merchants.value == 2:
         add_events(Regions.ZORA_RIVER, world, [
             (EventLocations.MAGIC_BEAN_SALESMAN_SHOP, Events.CAN_BUY_BEANS,
              lambda bundle: is_child(bundle) & has_item(Items.CHILD_WALLET, bundle))
@@ -73,7 +73,7 @@ def set_region_rules(world: "SohWorld") -> None:
     # Locations
     add_locations(Regions.ZORA_RIVER, world, [
         (Locations.ZR_MAGIC_BEAN_SALESMAN, lambda bundle: is_child(
-            bundle) & has_item(Items.CHILD_WALLET, bundle)),
+            bundle) & can_afford_slot(Locations.ZR_MAGIC_BEAN_SALESMAN, bundle)),
         (Locations.ZR_FROGS_OCARINA_GAME, lambda bundle: (is_child(bundle) &
                                                           can_use(Items.SONG_OF_STORMS, bundle) &
                                                           can_use(Items.SONG_OF_TIME, bundle) &
@@ -244,9 +244,9 @@ def set_region_rules(world: "SohWorld") -> None:
     # Locations
     add_locations(Regions.ZR_STORMS_GROTTO, world, [
         (Locations.ZR_DEKU_SCRUB_GROTTO_FRONT,
-         lambda bundle: can_stun_deku(bundle)),
+         lambda bundle: can_stun_deku(bundle) & can_afford_slot(Locations.ZR_DEKU_SCRUB_GROTTO_FRONT, bundle)),
         (Locations.ZR_DEKU_SCRUB_GROTTO_REAR,
-         lambda bundle: can_stun_deku(bundle)),
+         lambda bundle: can_stun_deku(bundle) & can_afford_slot(Locations.ZR_DEKU_SCRUB_GROTTO_REAR, bundle)),
         (Locations.ZR_STORMS_GROTTO_BEEHIVE,
          lambda bundle: can_break_upper_beehives(bundle))
 

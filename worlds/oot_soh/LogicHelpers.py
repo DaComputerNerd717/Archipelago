@@ -39,7 +39,7 @@ def add_locations(parent_region: Regions, world: "SohWorld", locations: list[tup
         locationName = str(loc[0])
         if locationName in world.included_locations:
             locationAddress = world.included_locations.pop(loc[0]).loc_id
-            if len(loc) > 1:
+            if len(loc) > 1 and not world.options.true_no_logic:
                 locationRule = loc[1]((parent_region, world)) if callable(loc[1]) else loc[1]
             else:
                 locationRule = True_()
@@ -63,7 +63,7 @@ def connect_regions(parent_region: Regions, world: "SohWorld", child_regions: li
     for region in child_regions:
         childRegion = world.get_region(region[0])
         
-        if len(region) > 1:
+        if len(region) > 1 and not world.options.true_no_logic:
             regionRule = region[1]((parent_region, world)) if callable(region[1]) else region[1]  # type: ignore # noqa
         else:
             regionRule = True_()
@@ -83,34 +83,35 @@ def add_events(parent_region: Regions, world: "SohWorld", events: list[tuple[Str
 
 
 def can_use(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    rule : Rule = has_item(item, bundle)
     data = item_data_table
 
     if item in data:
         if data[item].adult_only:
-            return has_item(item, bundle) & is_adult(bundle)
+            rule &= is_adult(bundle)
 
         if data[item].child_only:
-            return has_item(item, bundle) & is_child(bundle)
+            rule &= is_child(bundle)
 
         if data[item].item_type == ItemType.magic:
-            return has_item(item, bundle) & has_item(Items.PROGRESSIVE_MAGIC_METER, bundle)
+            rule &= has_item(Items.PROGRESSIVE_MAGIC_METER, bundle)
 
         if data[item].item_type == ItemType.song:
-            return has_item(item, bundle) & can_play_song(item, bundle)
+            rule &= can_play_song(item, bundle)
 
     if item in (Items.FIRE_ARROW, Items.ICE_ARROW, Items.LIGHT_ARROW):
-        return has_item(item, bundle) & can_use(Items.FAIRY_BOW, bundle)
+        rule &= can_use(Items.FAIRY_BOW, bundle)
 
     if item in (Items.BOMBCHU_BAG, Items.BOMBCHUS_5, Items.BOMBCHUS_10, Items.BOMBCHUS_20):
-        return has_item(item, bundle) & bombchu_refill(bundle)
+        rule &= bombchu_refill(bundle)
 
     if item == Items.FISHING_POLE:
-        return has_item(item, bundle) & has_item(Items.CHILD_WALLET, bundle)
+        rule &= has_item(Items.CHILD_WALLET, bundle)
 
     if item == Items.EPONA:
-        return has_item(item, bundle) & is_adult(bundle) & can_use(Items.EPONAS_SONG, bundle)
+        rule &= is_adult(bundle) & can_use(Items.EPONAS_SONG, bundle)
     
-    return has_item(item, bundle)
+    return rule
 
 
 def can_use_any(names: list[Items], bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -197,15 +198,32 @@ wallet_capacities: dict[Items, int] = {
     Items.TYCOON_WALLET: 999
 }
 
-def can_afford_slot(slot: str, bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    slot_price = bundle[1].shop_prices[slot]
-    return can_afford(slot_price, bundle)
 
-def can_afford(price: int, bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    for wallet, amount in wallet_capacities.items():
-        if amount >= price:
-            return has_item(wallet, bundle)
-    return False_()
+@dataclasses.dataclass
+class CanAffordSlot(Rule, game="Ship of Harkinian"):
+    location: Locations
+
+    def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
+        return self.Resolved(location = self.location, player = world.player)
+
+    class Resolved(Rule.Resolved):
+        location: Locations
+        player: int
+        def _evaluate(self, state: CollectionState) -> bool:
+            world = state.multiworld.worlds[self.player]
+            assert self.location in world.shop_prices, f'Shop location "{str(self.location)}" does not have a price assigned'
+
+            price = world.shop_prices.get(self.location, 500)
+            for wallet, amount in wallet_capacities.items():
+                if amount >= price:
+                    return Has(str(wallet)).resolve(world)._evaluate(state)
+
+        def item_dependencies(self) -> dict[str, set[int]]:
+            return {str(Items.PROGRESSIVE_WALLET): set()}
+
+
+def can_afford_slot(slot: Locations, bundle: tuple[Regions, "SohWorld"]) -> Rule:
+    return CanAffordSlot(slot)
 
 
 def scarecrows_song(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -761,7 +779,7 @@ def can_kill_enemy(bundle: tuple[Regions, "SohWorld"], enemy: Enemies, distance:
 
 def has_boss_soul(soul: Items, bundle: tuple[Regions, "SohWorld"]):
     if soul == Items.GANONS_SOUL:
-        return OptionFilter(ShuffleBossSouls, [0, 1], "contains") | has_item(soul, bundle) #ganons soul not shuffled or we have it
+        return OptionFilter(ShuffleBossSouls, [0, 1], "in") | has_item(soul, bundle) #ganons soul not shuffled or we have it
     return OptionFilter(ShuffleBossSouls, 0) | has_item(soul, bundle) #souls not shuffled or we have it
 
 
@@ -930,15 +948,12 @@ class HeartsAbove(Rule, game="Ship of Harkinian"):
         amount: int
         def _evaluate(self, state: CollectionState) -> bool:
             return state.soh_heart_count[self.player] >= self.amount # type: ignore
+        
+        def item_dependencies(self) -> dict[str, set[int]]:
+            return {str(item_id): {id(self)} for item_id in (Items.HEART_CONTAINER, Items.PIECE_OF_HEART, Items.PIECE_OF_HEART_WINNER)}
 
 def hearts_above(bundle: tuple[Regions, "SohWorld"], amount) -> Rule:
     return HeartsAbove(amount=amount)
-
-#use hearts_above rule for access rules
-def hearts(bundle: tuple[CollectionState, Regions | None, "SohWorld"]) -> int:
-    state = bundle[0]
-    world = bundle[2]
-    return state.soh_heart_count[world.player]  # type: ignore
 
 
 def can_open_bomb_grotto(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -1023,6 +1038,21 @@ def can_ground_jump(bundle: tuple[Regions, "SohWorld"], hasBombFlower: bool = Fa
 
 def can_clear_stalagmite(bundle: tuple[Regions, "SohWorld"]):
     return can_jump_slash(bundle) | has_explosives(bundle)
+
+
+@dataclasses.dataclass
+class CanWinTriforceHunt(Rule, game="Ship of Harkinian"):
+    def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
+        return self.Resolved(player = world.player)
+
+    class Resolved(Rule.Resolved):
+        item_name: str = str(Items.TRIFORCE_PIECE)
+        player: int
+        def _evaluate(self, state: CollectionState) -> bool:
+            return state.prog_items[self.player][self.item_name] >= cast("SohWorld", state.multiworld.worlds[self.player]).triforce_pieces_required
+
+        def item_dependencies(self) -> dict[str, set[int]]:
+            return {self.item_name: set()}
 
 
 class SohHeartState(LogicMixin):

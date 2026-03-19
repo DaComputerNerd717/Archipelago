@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from .Enums import *
 from .Items import item_data_table, filler_items, filler_bottles, SohItem
 from .Regions import map_and_compass_vanilla_mapping, small_key_vanilla_mapping, dungeon_boss_key_vanilla_mapping
-from .LogicHelpers import key_to_ring, hearts
+from .LogicHelpers import key_to_ring
 from .KeyShuffle import small_key_option_matching
 from BaseClasses import ItemClassification
 from .SongShuffle import song_vanilla_locations, get_shuffled_songs
@@ -299,7 +299,7 @@ def create_item_pool(world: "SohWorld") -> None:
     elif world.options.item_pool == "minimal":
         max_hearts = 3
 
-    starting_hearts: int = hearts((world.multiworld.state, None, world))
+    starting_hearts: int = world.multiworld.state.soh_heart_count[world.player]
     if starting_hearts < max_hearts:
         items_to_create[Items.PIECE_OF_HEART_WINNER] = 1
         items_to_create[Items.PIECE_OF_HEART] = 3
@@ -492,31 +492,47 @@ def create_item_pool(world: "SohWorld") -> None:
             items_to_create[Items.PROGRESSIVE_STICK_CAPACITY] -= 2
             items_to_create[Items.PROGRESSIVE_NUT_CAPACITY] -= 2
 
-    # Add Golden Skulltula Tokens as progressive if necessary
-    if world.randomized_progressive_skulltula_count > 0:
-        # We can only set progressive for whatever we shuffle
+    # It there are more randomized skulltula tokens than required progression, set the excess to useful
+    if items_to_create[Items.GOLD_SKULLTULA_TOKEN] > world.randomized_progressive_skulltula_count:
         items_to_create[Items.GOLD_SKULLTULA_TOKEN] -= create_special_progression_item(
-            world, Items.GOLD_SKULLTULA_TOKEN, ItemClassification.progression_deprioritized_skip_balancing, world.randomized_progressive_skulltula_count)
+            world, Items.GOLD_SKULLTULA_TOKEN, ItemClassification.useful | ItemClassification.deprioritized | ItemClassification.skip_balancing, items_to_create[Items.GOLD_SKULLTULA_TOKEN] - world.randomized_progressive_skulltula_count)
 
-    # Create progressive Heart Pieces if Fewer Tunic Requirements is enabled
-    if world.options.enable_all_tricks or str(Tricks.FEWER_TUNIC_REQUIREMENTS) in world.options.tricks_in_logic.value:
+    # If hearts aren't logically relevent (or you have enough to do everything) make them useful
+    min_hearts_needed: int = 3
+    if not (world.options.enable_all_tricks or str(Tricks.FEWER_TUNIC_REQUIREMENTS) in world.options.tricks_in_logic.value or world.multiworld.state.soh_heart_count[world.player] < min_hearts_needed):
+        progression_hearts: int = min_hearts_needed - world.multiworld.state.soh_heart_count[world.player]
+        non_progression_container_amount: int = 0
+        non_progression_piece_amount: int = 0
+        if progression_hearts > 0 and items_to_create[Items.HEART_CONTAINER] > 0:
+            non_progression_container_amount = items_to_create[Items.HEART_CONTAINER] - progression_hearts
+
+        if non_progression_container_amount == 0:
+            non_progression_container_amount = progression_hearts * 4
+
         items_to_create[Items.HEART_CONTAINER] -= create_special_progression_item(
-            world, Items.HEART_CONTAINER, ItemClassification.progression_skip_balancing, items_to_create[Items.HEART_CONTAINER])
+            world, Items.HEART_CONTAINER, ItemClassification.useful | ItemClassification.skip_balancing, non_progression_container_amount)
+        
+        if world.options.item_pool != "minimal":
+            items_to_create[Items.PIECE_OF_HEART] -= create_special_progression_item(
+                world, Items.PIECE_OF_HEART, ItemClassification.useful | ItemClassification.skip_balancing, non_progression_piece_amount - 1)
+            items_to_create[Items.PIECE_OF_HEART_WINNER] -= create_special_progression_item(
+                world, Items.HEART_CONTAINER, ItemClassification.useful | ItemClassification.skip_balancing, 1)
+        
 
-    # Only create Greg as a Progressive Item if he is required to win
-    if world.options.rainbow_bridge == "greg" or (world.options.rainbow_bridge and world.options.rainbow_bridge_greg_modifier) or (world.options.ganons_castle_boss_key and world.options.ganons_castle_boss_key_greg_modifier):
+    # if Greg isn't necessary to win, make him filler
+    if not (world.options.rainbow_bridge == "greg" or (world.options.rainbow_bridge and world.options.rainbow_bridge_greg_modifier) or (world.options.ganons_castle_boss_key and world.options.ganons_castle_boss_key_greg_modifier)):
         items_to_create[Items.GREG_THE_GREEN_RUPEE] -= create_special_progression_item(
-            world, Items.GREG_THE_GREEN_RUPEE, ItemClassification.progression_skip_balancing)
+            world, Items.GREG_THE_GREEN_RUPEE, ItemClassification.filler)
 
-    # Only create Stone of Agony as Progressive if it is required for grottos
+    # Stone of Agony is Progression unless not required for Grottos
     if world.options.enable_all_tricks or str(Tricks.GROTTOS_WITHOUT_AGONY) in world.options.tricks_in_logic:
         items_to_create[Items.STONE_OF_AGONY] -= create_special_progression_item(
             world, Items.STONE_OF_AGONY, ItemClassification.filler)
 
-    # Only create Ice Arrows as Progressive if blue fire arrows is enabled
-    if world.options.blue_fire_arrows:
+    # Ice Arrows set to filler if not useful (blue fire arrows enabled)
+    if not world.options.blue_fire_arrows:
         items_to_create[Items.ICE_ARROW] -= create_special_progression_item(
-            world, Items.ICE_ARROW, ItemClassification.progression | ItemClassification.useful)
+            world, Items.ICE_ARROW, ItemClassification.filler)
 
     items: list[SohItem] = list()
     # Add regular item pool

@@ -4,6 +4,7 @@ import pkgutil
 from typing import Any, ClassVar, Callable
 
 from BaseClasses import CollectionState, Item, Tutorial, ItemClassification, Location
+from rule_builder.cached_world import CachedRuleBuilderWorld
 from worlds.AutoWorld import WebWorld, World
 from Fill import fill_restrictive
 from .location_access.overworld.castle_grounds import LocalEvents
@@ -64,7 +65,7 @@ class SohSettings(Group):
     disable_fill_overflow: DisableFillOverflow | bool = False
 
 
-class SohWorld(World):
+class SohWorld(CachedRuleBuilderWorld):
     """A PC Port of Ocarina of Time"""
 
     game = "Ship of Harkinian"

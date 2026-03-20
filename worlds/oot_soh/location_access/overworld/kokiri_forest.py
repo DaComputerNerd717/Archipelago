@@ -19,7 +19,7 @@ class EventLocations(StrEnum):
 
 
 class LocalEvents(StrEnum):
-    MIDO_SWORD_AND_SHIELD = "Showed Mido the Sword & Shield"
+    MIDO_SWORD_AND_SHIELD = "Showed Mido the Sword and Shield"
     KF_BEAN_PLANTED = "KF Bean Planted"
 
 

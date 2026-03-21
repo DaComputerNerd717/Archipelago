@@ -23,6 +23,7 @@ from .UniversalTracker import setup_options_from_slot_data
 from settings import Group, Bool
 from Options import OptionError
 from .LogicHelpers import wallet_capacities
+from rule_builder.rules import Has, CanReachLocation, Rule, True_
 
 import logging
 logger = logging.getLogger("SOH_OOT")
@@ -260,11 +261,13 @@ class SohWorld(World):
     def get_filler_item_name(self) -> str:
         return get_filler_item(self)
 
-    def set_completion_rule(self) -> None:
+    def set_completion_rule(self, goal: Rule = None) -> None:
         if not self.options.true_no_logic:
             # Actual completion condition.
-            self.multiworld.completion_condition[self.player] = lambda state: state.has(
-                Events.GAME_COMPLETED.value, self.player)
+            if goal == None:
+                super().set_completion_rule(Has(str(Events.GAME_COMPLETED)))
+            else:
+                super().set_completion_rule(goal)
 
     def get_empty_locations_from_list_shuffled(self, location_list: list[Locations]) -> list[Location]:
         locations = []
@@ -324,8 +327,6 @@ class SohWorld(World):
         self.set_completion_rule()
 
     def pre_fill(self) -> None:
-        original_completion_goal = self.multiworld.completion_condition[self.player]
-
         pre_fill_own_dungeon_items(self)
         pre_fill_dungeon_rewards(self)
         pre_fill_songs(self)
@@ -333,7 +334,7 @@ class SohWorld(World):
         pre_fill_overworld_items(self)
         fill_shop_items(self)
 
-        self.multiworld.completion_condition[self.player] = original_completion_goal
+        self.set_completion_rule()
 
     def run_prefill(self, item_pool: list[Items], locations: list[Locations], prefill_state: CollectionState | None = None, goal: Callable[[CollectionState], bool] | None = None):
         # check if we're using specific collectionstate
@@ -345,11 +346,12 @@ class SohWorld(World):
             prefill_state = self.get_pre_fill_state()
         
         if goal is None:
+            goal = True_()
             # set region accessability of locations as the goal
-            accessibility_goal = {self.get_location(loc) for loc in locations}
-            goal = lambda state: all([state.can_reach(reg) for reg in accessibility_goal])
+            for reg in locations:
+                goal &= CanReachLocation(str(reg))
 
-        self.multiworld.completion_condition[self.player] = goal
+        self.set_completion_rule(goal)
 
         # get empty, non reserved locations
         empty_locations = self.get_empty_locations_from_list_shuffled(locations)

@@ -204,23 +204,53 @@ class CanAffordSlot(Rule, game="Ship of Harkinian"):
     location: Locations
 
     def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
-        return self.Resolved(location = self.location, player = world.player)
+        return self.Resolved(location = self.location, player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
         location: Locations
         player: int
         def _evaluate(self, state: CollectionState) -> bool:
             world = state.multiworld.worlds[self.player]
-            assert self.location in world.shop_prices, f'Shop location "{str(self.location)}" does not have a price assigned'
-
-            price = world.shop_prices.get(self.location, 500)
-            for wallet, amount in wallet_capacities.items():
-                if amount >= price:
-                    return Has(str(wallet)).resolve(world)._evaluate(state)
+            return Has(str(get_wallet_for_shop_slot(self.location, world)[0])).resolve(world)._evaluate(state)
 
         def item_dependencies(self) -> dict[str, set[int]]:
             return {str(Items.PROGRESSIVE_WALLET): set()}
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            data = get_wallet_for_shop_slot(self.location, state.multiworld.worlds[self.player])
+            verb = "Missing " if state and not self(state) else "Has "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "color", "color": color, "text": data[0]})
+                messages.append({"type": "text", "text": f" to buy item for "})
+                messages.append({"type": "color", "color": "cyan", "text": str(data[1])})
+                messages.append({"type": "text", "text": f" rupees"})
+            else:
+                messages.append({"type": "item_name", "flags": 0b001, "text": data[0], "player": self.player})
+            return messages
 
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            data = get_wallet_for_shop_slot(self.location, state.multiworld.worlds[self.player])
+            if state is None:
+                return str(self)
+            prefix = "Has" if self(state) else "Missing"
+            return f"{prefix} {data[0]} to buy item for {str(data[1])} rupees"
+
+        @override
+        def __str__(self) -> str:
+            return f"Has wallet large enough to buy the item at {str(self.location)}"
+
+
+def get_wallet_for_shop_slot(location: Locations, world: "SohWorld") -> str:
+    assert location in world.shop_prices, f'Shop location "{str(location)}" does not have a price assigned'
+
+    price = world.shop_prices.get(location, 500)
+    for wallet, amount in wallet_capacities.items():
+        if amount >= price:
+            return str(wallet), price
 
 def can_afford_slot(slot: Locations, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return CanAffordSlot(slot)
@@ -326,7 +356,7 @@ class IsAdult(Rule, game="Ship of Harkinian"):
     parent_region: Regions
 
     def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
-        return self.Resolved(parent_region = self.parent_region, player = world.player)
+        return self.Resolved(parent_region = self.parent_region, player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
         #bundle pieces
@@ -341,13 +371,36 @@ class IsAdult(Rule, game="Ship of Harkinian"):
         
         def region_dependencies(self) -> dict[str, set[int]]:
             return {self.parent_region.value: {id(self)}}
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            verb = "Can not " if state and not self(state) else "Can "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "text", "text": "reach "})
+                messages.append({"type": "color", "color": "cyan", "text": f"{self.parent_region} "})
+                messages.append({"type": "text", "text": "as "})
+                messages.append({"type": "color", "color": color, "text": "Adult Link"})
+            return messages
+        
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            if state is None:
+                return str(self)
+            prefix = "Can" if self(state) else "Can not"
+            return f"{prefix} reach {str(self.parent_region)} as Adult Link"
+
+        @override
+        def __str__(self) -> str:
+            return f"Can reach {str(self.parent_region)} as Adult Link"
 
 @dataclasses.dataclass
 class IsChild(Rule, game="Ship of Harkinian"):
     parent_region: Regions
 
     def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
-        return self.Resolved(parent_region = self.parent_region, player = world.player)
+        return self.Resolved(parent_region = self.parent_region, player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
         #bundle pieces
@@ -362,6 +415,29 @@ class IsChild(Rule, game="Ship of Harkinian"):
         
         def region_dependencies(self) -> dict[str, set[int]]:
             return {self.parent_region.value: {id(self)}}
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            verb = "Can not " if state and not self(state) else "Can "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "text", "text": "reach "})
+                messages.append({"type": "color", "color": "cyan", "text": f"{self.parent_region} "})
+                messages.append({"type": "text", "text": "as "})
+                messages.append({"type": "color", "color": color, "text": "Child Link"})
+            return messages
+        
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            if state is None:
+                return str(self)
+            prefix = "Can" if self(state) else "Can not"
+            return f"{prefix} reach {self.parent_region} as Child Link"
+
+        @override
+        def __str__(self) -> str:
+            return f"Can reach {self.parent_region} as Child Link"
 
 #Build the rules
 def is_child(bundle: tuple[Regions, "SohWorld"]):
@@ -942,7 +1018,7 @@ def water_timer_above(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
 class HeartsAbove(Rule, game="Ship of Harkinian"):
     amount: int
     def _instantiate(self, world: World) -> Rule.Resolved:
-        return self.Resolved(player=world.player, amount = self.amount)
+        return self.Resolved(player=world.player, amount = self.amount, caching_enabled=getattr(world, "rule_caching_enabled", False))
     class Resolved(Rule.Resolved):
         player: int
         amount: int
@@ -951,6 +1027,33 @@ class HeartsAbove(Rule, game="Ship of Harkinian"):
         
         def item_dependencies(self) -> dict[str, set[int]]:
             return {str(item_id): {id(self)} for item_id in (Items.HEART_CONTAINER, Items.PIECE_OF_HEART, Items.PIECE_OF_HEART_WINNER)}
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            verb = "Does not have " if state and not self(state) else "Has "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "color", "color": "cyan", "text": str(self.amount)})
+
+                if self.count > 1:
+                    messages.append({"type": "color", "color": color, "text": " hearts "})
+                else:
+                    messages.append({"type": "color", "color": color, "text": " heart "})
+
+                messages.append({"type": "text", "text": f"or more"})
+            return messages
+        
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            if state is None:
+                return str(self)
+            prefix = "Has" if self(state) else "Does not have"
+            return f"{prefix} {self.amount} or more"
+
+        @override
+        def __str__(self) -> str:
+            return f"Has {self.amount} hearts or more"
 
 def hearts_above(bundle: tuple[Regions, "SohWorld"], amount) -> Rule:
     return HeartsAbove(amount=amount)
@@ -1043,7 +1146,7 @@ def can_clear_stalagmite(bundle: tuple[Regions, "SohWorld"]):
 @dataclasses.dataclass
 class CanWinTriforceHunt(Rule, game="Ship of Harkinian"):
     def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
-        return self.Resolved(player = world.player)
+        return self.Resolved(player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
         item_name: str = str(Items.TRIFORCE_PIECE)
@@ -1053,6 +1156,34 @@ class CanWinTriforceHunt(Rule, game="Ship of Harkinian"):
 
         def item_dependencies(self) -> dict[str, set[int]]:
             return {self.item_name: set()}
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            amount = cast("SohWorld", state.multiworld.worlds[self.player]).triforce_pieces_required
+            verb = "Does not have " if state and not self(state) else "Has "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "color", "color": "cyan", "text": str(amount)})
+
+                if amount > 1:
+                    messages.append({"type": "color", "color": color, "text": " Triforce Pieces "})
+                else:
+                    messages.append({"type": "color", "color": color, "text": " Triforce Piece "})
+
+                messages.append({"type": "text", "text": f"or more"})
+            return messages
+        
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            if state is None:
+                return str(self)
+            prefix = "Has" if self(state) else "Does not have"
+            return f"{prefix} {str(cast("SohWorld", state.multiworld.worlds[self.player]).triforce_pieces_required)} Triforce Pieces or more"
+
+        @override
+        def __str__(self) -> str:
+            return f"Has enough Triforce Pieces to win"
 
 
 class SohHeartState(LogicMixin):

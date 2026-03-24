@@ -156,16 +156,14 @@ def has_item(item: Items | Events | StrEnum, bundle: tuple[Regions, "SohWorld"],
         return scarecrows_song(bundle) & can_use(Items.LONGSHOT, bundle)
 
     if item == Items.FISHING_POLE:
-        return OptionFilter(ShuffleFishingPole, 0) | Has(Items.FISHING_POLE)
-        #return (not world.options.shuffle_fishing_pole) or state.has(Items.FISHING_POLE, player)
+        return OptionFilter(ShuffleFishingPole, False) | Has(Items.FISHING_POLE)
 
     if item == Items.EPONA:
         return Has(Events.FREED_EPONA)
 
     if item in {Items.POCKET_EGG, Items.COJIRO, Items.ODD_MUSHROOM, Items.ODD_POTION, Items.POACHERS_SAW,
                 Items.BROKEN_GORONS_SWORD, Items.PRESCRIPTION, Items.EYEBALL_FROG, Items.WORLDS_FINEST_EYEDROPS}:
-        return OptionFilter(ShuffleAdultTradeItems, 0) | Has(item)
-        # return not world.options.shuffle_adult_trade_items or state.has(item, player)
+        return OptionFilter(ShuffleAdultTradeItems, False) | Has(item)
 
     if item == Items.BOTTLE_WITH_BLUE_FIRE:
         return has_bottle(bundle) & (Has(Events.CAN_ACCESS_BLUE_FIRE) | Has(Items.BUY_BLUE_FIRE))
@@ -257,7 +255,7 @@ def can_afford_slot(slot: Locations, bundle: tuple[Regions, "SohWorld"]) -> Rule
 
 
 def scarecrows_song(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return ((OptionFilter(SkipScarecrowsSong, 1) & has_item(Items.FAIRY_OCARINA, bundle)
+    return ((OptionFilter(SkipScarecrowsSong, True) & has_item(Items.FAIRY_OCARINA, bundle)
             & has_enough_ocarina_buttons(bundle, 2))
             | (has_item(Events.CHILD_SCARECROW_UNLOCKED, bundle) & has_item(Events.ADULT_SCARECROW_UNLOCKED, bundle)))
 
@@ -274,11 +272,11 @@ def has_bottle_count(target_count: int) -> Rule:
 
 
 def bombchu_refill(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return OptionFilter(BombchuDrops, 1) | HasAny(Items.BUY_BOMBCHUS10, Items.BUY_BOMBCHUS20, Events.COULD_PLAY_BOWLING, Events.CARPET_MERCHANT)
+    return OptionFilter(BombchuDrops, True) | HasAny(Items.BUY_BOMBCHUS10, Items.BUY_BOMBCHUS20, Events.COULD_PLAY_BOWLING, Events.CARPET_MERCHANT)
 
 
 def bombchus_enabled(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return Has(Items.BOMBCHU_BAG) | Has(Items.BOMB_BAG, options=[OptionFilter(BombchuBag, 0)])
+    return Has(Items.BOMBCHU_BAG) | Has(Items.BOMB_BAG, options=[OptionFilter(BombchuBag, False)])
 
 
 ocarina_buttons_required: dict[str, list[str]] = {
@@ -298,7 +296,7 @@ ocarina_buttons_required: dict[str, list[str]] = {
 
 
 def can_play_song(song: StrEnum, bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return HasAll(Items.FAIRY_OCARINA, song) & (OptionFilter(ShuffleOcarinaButtons, 0) | HasAll(*ocarina_buttons_required[song]))
+    return HasAll(Items.FAIRY_OCARINA, song) & (OptionFilter(ShuffleOcarinaButtons, False) | HasAll(*ocarina_buttons_required[song]))
 
 
 def has_explosives(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -317,7 +315,7 @@ def blue_fire(bundle: tuple[Regions, "SohWorld"]) -> Rule:
              (has_item(Events.CAN_ACCESS_BLUE_FIRE, bundle) |
               has_item(Items.BUY_BLUE_FIRE, bundle))) |
             (can_use(Items.ICE_ARROW, bundle) &
-             OptionFilter(BlueFireArrows, 1)))
+             OptionFilter(BlueFireArrows, True)))
 
 
 def can_use_sword(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -493,11 +491,10 @@ def take_damage(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 def can_do_trick(trick: Tricks, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     # check if we have the trick enabled, the GLITCHED item is for Universal Tracker purposes.
     return OptionFilter(EnableAllTricks, 1) | Has(Items.GLITCHED) | OptionFilter(TricksInLogic, trick.value, "contains")
-    #return (bool(bundle[1].options.enable_all_tricks.value) or trick.value in bundle[1].options.tricks_in_logic.value) or has_item(Items.GLITCHED, bundle)
 
 
 def can_get_nighttime_gs(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return at_night(bundle) & (OptionFilter(SkullsSunSong, 0) | can_use(Items.SUNS_SONG, bundle))
+    return at_night(bundle) & (OptionFilter(SkullsSunSong, False) | can_use(Items.SUNS_SONG, bundle))
 
 
 def can_break_pots(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -570,7 +567,7 @@ def can_break_lower_hives(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 def can_break_upper_beehives(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return (hookshot_or_boomerang(bundle) | 
             (can_do_trick(Tricks.BOMBCHU_BEEHIVES, bundle) & can_use(Items.BOMBCHU_BAG, bundle)) |
-            (OptionFilter(SlingbowBreakBeehives, 1) & (can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT], bundle))))
+            (OptionFilter(SlingbowBreakBeehives, True) & (can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT], bundle))))
 
 
 def can_open_storms_grotto(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -592,7 +589,6 @@ def can_hit_at_range(bundle: tuple[Regions, "SohWorld"],
     if distance <= EnemyDistance.BOMB_THROW and not in_water:
         rule |= can_use(Items.BOMB_BAG, bundle)
     if distance <= EnemyDistance.HOOKSHOT:
-        #
         wof = True_() if wall_or_floor else False_()
         rule |= can_use(Items.HOOKSHOT, bundle) | (wof & can_use(Items.BOMBCHUS_5, bundle))
     if distance <= EnemyDistance.LONGSHOT:
@@ -854,9 +850,10 @@ def can_kill_enemy(bundle: tuple[Regions, "SohWorld"], enemy: Enemies, distance:
 
 
 def has_boss_soul(soul: Items, bundle: tuple[Regions, "SohWorld"]):
-    if soul == Items.GANONS_SOUL:
-        return OptionFilter(ShuffleBossSouls, [0, 1], "in") | has_item(soul, bundle) #ganons soul not shuffled or we have it
-    return OptionFilter(ShuffleBossSouls, 0) | has_item(soul, bundle) #souls not shuffled or we have it
+    soulsanity = bundle[1].options.shuffle_boss_souls
+    if soulsanity == "off" or (soul == Items.GANONS_SOUL and soulsanity == "on"):
+        return True_()
+    return has_item(soul, bundle)
 
 
 def can_pass_enemy(bundle: tuple[Regions, "SohWorld"], enemy: Enemies,
@@ -981,7 +978,7 @@ def item_group_count_enough(item_group: str, count: int):
 
 
 def has_enough_ocarina_buttons(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
-    return OptionFilter(ShuffleOcarinaButtons, 0) | HasGroup("Ocarina Buttons", amount)
+    return OptionFilter(ShuffleOcarinaButtons, False) | HasGroup("Ocarina Buttons", amount)
 
 
 def has_enough_stones(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
@@ -1065,11 +1062,14 @@ def can_open_bomb_grotto(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 def trade_quest_step(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     # If adult trade shuffle is off, it'll automatically assume the whole trade quest is complete as soon as claim check is obtained.
-    rule = OptionFilter(ShuffleAdultTradeItems, 0) & has_item(Items.CLAIM_CHECK, bundle)
+    if not bundle[1].options.shuffle_adult_trade_items:
+        return has_item(Items.CLAIM_CHECK, bundle)
+
+    rule: Rule = False_()
     # Since the original used fallthrough, we will loop through all trade quest items after this point too
     trade_items = [Items.POCKET_EGG, Items.COJIRO, Items.ODD_MUSHROOM, Items.ODD_POTION, Items.POACHERS_SAW, Items.BROKEN_GORONS_SWORD, Items.PRESCRIPTION, Items.WORLDS_FINEST_EYEDROPS, Items.CLAIM_CHECK]
     if item not in trade_items:
-        return False_()
+        return rule
     pos = trade_items.index(item)
     for i in range(pos, len(trade_items)):
         rule |= has_item(trade_items[i], bundle)

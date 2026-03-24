@@ -77,7 +77,7 @@ def set_region_rules(world: "SohWorld") -> None:
             has_item(Items.SILVER_SCALE, bundle) | can_use(Items.IRON_BOOTS, bundle))),
         (Regions.ZD_BEHIND_KING_ZORA,
          lambda bundle: has_item(Events.DELIVER_LETTER, bundle) | OptionFilter(ZorasFountain, 2) | (
-             OptionFilter(ZorasFountain, 1) & is_adult(bundle)) | (
+             OptionFilter(ZorasFountain, True) & is_adult(bundle)) | (
              can_do_trick(Tricks.ZD_KING_ZORA_SKIP, bundle) & is_adult(bundle))),
         (Regions.ZD_SHOP, lambda bundle: is_child(bundle) | blue_fire(bundle)),
         (Regions.ZORAS_DOMAIN_ISLAND, lambda bundle: True_()),
@@ -106,7 +106,7 @@ def set_region_rules(world: "SohWorld") -> None:
     connect_regions(Regions.ZD_BEHIND_KING_ZORA, world, [
         (Regions.ZORAS_DOMAIN,
          lambda bundle: has_item(Events.DELIVER_LETTER, bundle) | OptionFilter(ZorasFountain, 2) | (
-             OptionFilter(ZorasFountain, 1) & is_adult(bundle))),
+             OptionFilter(ZorasFountain, True) & is_adult(bundle))),
         (Regions.ZORAS_FOUNTAIN, lambda bundle: True_()),
     ])
 

@@ -79,7 +79,7 @@ def set_region_rules(world: "SohWorld") -> None:
     # Connections
     connect_regions(Regions.SPIRIT_TEMPLE_CHILD_CLIMB, world, [
         (Regions.SPIRIT_TEMPLE_CENTRAL_CHAMBER, lambda bundle: has_explosives(bundle) | (
-            OptionFilter(SunlightArrows, 1) & can_use(Items.LIGHT_ARROW, bundle)))
+            OptionFilter(SunlightArrows, True) & can_use(Items.LIGHT_ARROW, bundle)))
     ])
 
     # Spirit Temple Early Adult
@@ -165,7 +165,7 @@ def set_region_rules(world: "SohWorld") -> None:
     # Locations
     add_locations(Regions.SPIRIT_TEMPLE_BEYOND_CENTRAL_LOCKED_DOOR, world, [
         (Locations.SPIRIT_TEMPLE_NEAR_FOUR_ARMOS_CHEST, lambda bundle: (can_use(Items.MIRROR_SHIELD, bundle) | (
-            OptionFilter(SunlightArrows, 1) & can_use(Items.LIGHT_ARROW, bundle))) & has_explosives(bundle)),
+            OptionFilter(SunlightArrows, True) & can_use(Items.LIGHT_ARROW, bundle))) & has_explosives(bundle)),
         (Locations.SPIRIT_TEMPLE_HALLWAY_LEFT_INVISIBLE_CHEST, lambda bundle: (can_do_trick(
             Tricks.LENS_SPIRIT, bundle) | can_use(Items.LENS_OF_TRUTH, bundle)) & has_explosives(bundle)),
         (Locations.SPIRIT_TEMPLE_HALLWAY_RIGHT_INVISIBLE_CHEST, lambda bundle: (can_do_trick(
@@ -187,7 +187,7 @@ def set_region_rules(world: "SohWorld") -> None:
         (Locations.SPIRIT_TEMPLE_BOSS_KEY_CHEST, lambda bundle: can_use(Items.ZELDAS_LULLABY, bundle) & ((take_damage(bundle)
          & can_do_trick(Tricks.FLAMING_CHESTS, bundle)) | (can_use(Items.FAIRY_BOW, bundle) & can_use(Items.HOOKSHOT, bundle)))),
         (Locations.SPIRIT_TEMPLE_TOPMOST_CHEST, lambda bundle: (can_use(Items.MIRROR_SHIELD, bundle) & (can_jump_slash(bundle) | has_explosives(bundle) | (can_do_trick(Tricks.HOOKSHOT_EXTENSION,
-         bundle) & (can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT, Items.HOOKSHOT], bundle))))) | (OptionFilter(SunlightArrows, 1) & can_use(Items.LIGHT_ARROW, bundle))),
+         bundle) & (can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT, Items.HOOKSHOT], bundle))))) | (OptionFilter(SunlightArrows, True) & can_use(Items.LIGHT_ARROW, bundle))),
         (Locations.SPIRIT_TEMPLE_ADULT_CLIMB_LEFT_HEART,
          lambda bundle: can_use(Items.HOOKSHOT, bundle)),
         (Locations.SPIRIT_TEMPLE_ADULT_CLIMB_RIGHT_HEART,

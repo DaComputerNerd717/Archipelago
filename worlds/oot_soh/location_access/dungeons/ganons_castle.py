@@ -213,10 +213,10 @@ def set_region_rules(world: "SohWorld") -> None:
                                                                                                      can_use(Items.FAIRY_SLINGSHOT, bundle)))) &
                                                                                                   can_use(Items.FAIRY_BOW, bundle) &
                                                                                                   (can_use(Items.MIRROR_SHIELD, bundle) |
-                                                                                                   (OptionFilter(SunlightArrows, 1) & can_use(Items.LIGHT_ARROW, bundle))))),
+                                                                                                   (OptionFilter(SunlightArrows, True) & can_use(Items.LIGHT_ARROW, bundle))))),
         (EventLocations.GANONS_CASTLE_SPIRIT_TRIAL_AREA, LocalEvents.GANONS_CASTLE_SPIRIT_TRIAL_CLEARED, lambda bundle: (can_use(Items.LIGHT_ARROW, bundle) &
                                                                                                                          (can_use(Items.MIRROR_SHIELD, bundle) |
-                                                                                                                          OptionFilter(SunlightArrows, 1)) &
+                                                                                                                          OptionFilter(SunlightArrows, True)) &
                                                                                                                          (can_use(Items.BOMBCHUS_5, bundle) |
                                                                                                                           (can_do_trick(Tricks.HOOKSHOT_EXTENSION, bundle) &
                                                                                                                            (can_use(Items.FAIRY_BOW, bundle) |
@@ -245,7 +245,7 @@ def set_region_rules(world: "SohWorld") -> None:
                                                                        can_use(Items.FAIRY_SLINGSHOT, bundle)))) &
                                                                     can_use(Items.FAIRY_BOW, bundle) &
                                                                     (can_use(Items.MIRROR_SHIELD, bundle) |
-                                                                     (OptionFilter(SunlightArrows, 1) & can_use(Items.LIGHT_ARROW, bundle))))),
+                                                                     (OptionFilter(SunlightArrows, True) & can_use(Items.LIGHT_ARROW, bundle))))),
         (Locations.GANONS_CASTLE_SPIRIT_TRIAL_POT2, lambda bundle: (((can_do_trick(Tricks.GANON_SPIRIT_TRIAL_HOOKSHOT, bundle) &
                                                                       can_jump_slash_except_hammer(bundle)) |
                                                                      can_use(Items.HOOKSHOT, bundle)) &
@@ -255,7 +255,7 @@ def set_region_rules(world: "SohWorld") -> None:
                                                                        can_use(Items.FAIRY_SLINGSHOT, bundle)))) &
                                                                     can_use(Items.FAIRY_BOW, bundle) &
                                                                     (can_use(Items.MIRROR_SHIELD, bundle) |
-                                                                     (OptionFilter(SunlightArrows, 1) & can_use(Items.LIGHT_ARROW, bundle))))),
+                                                                     (OptionFilter(SunlightArrows, True) & can_use(Items.LIGHT_ARROW, bundle))))),
         (Locations.GANONS_CASTLE_SPIRIT_TRIAL_BEAMOS_SUNS_SONG_FAIRY,
          lambda bundle: can_use(Items.SUNS_SONG, bundle)),
         (Locations.GANONS_CASTLE_SPIRIT_TRIAL_HEART, lambda bundle: True_())

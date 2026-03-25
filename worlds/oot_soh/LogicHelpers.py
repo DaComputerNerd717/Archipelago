@@ -1124,10 +1124,15 @@ def effective_health_above(bundle: tuple[Regions, "SohWorld"], count: int) -> Ru
 
 
 def is_fire_loop_locked(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return True_(options=[OptionFilter(SmallKeyShuffle, ["anywhere", "overworld", "any_dungeon"], operator="in")])
+    if bundle[1].options.small_key_shuffle in ("anywhere", "overworld", "any_dungeon"):
+        return False_()
+    return True_()
 
 def is_fire_loop_unlocked(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return False_(options=[OptionFilter(SmallKeyShuffle, ["anywhere", "overworld", "any_dungeon"], operator="in")], filtered_resolution=True)
+    if bundle[1].options.small_key_shuffle in ("anywhere", "overworld", "any_dungeon"):
+        return True_()
+    return False_()
+
 
 def can_ground_jump(bundle: tuple[Regions, "SohWorld"], hasBombFlower: bool = False) -> Rule:
     if hasBombFlower:

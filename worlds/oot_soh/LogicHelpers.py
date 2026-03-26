@@ -1079,6 +1079,7 @@ def trade_quest_step(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
 class ItemsPlusGregEnough(Rule, game="Ship of Harkinian"):
     target: int
     items: str | list[Items] | list[Events]
+    greg: bool
     def _instantiate(self, world: World) -> Rule.Resolved:
         world = cast("SohWorld", world)
         items = []
@@ -1087,30 +1088,39 @@ class ItemsPlusGregEnough(Rule, game="Ship of Harkinian"):
                 items.extend(world.item_name_groups[group])
         else:
             items = list(self.items)
-        if world.options.rainbow_bridge_greg_modifier == "reward":
+        if self.greg:
             items.append(Items.GREG_THE_GREEN_RUPEE)
         return HasFromList(*items, count=self.target).resolve(world)
 
 def can_build_rainbow_bridge(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     world = bundle[1]
+    greg: bool = False
+
+    if world.options.rainbow_bridge_greg_modifier == "reward":
+        greg = True
 
     return OptionFilter(RainbowBridge, "always_open") \
          | (OptionFilter(RainbowBridge, "vanilla") & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle) & can_use(Items.LIGHT_ARROW, bundle)) \
-         | (OptionFilter(RainbowBridge, "stones") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_stones_required.value, items="Stones")) \
-         | (OptionFilter(RainbowBridge, "medallions") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_medallions_required.value, items = "Medallions")) \
-         | (OptionFilter(RainbowBridge, "dungeon_rewards") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_dungeon_rewards_required.value, items = "Stones,Medallions")) \
-         | (OptionFilter(RainbowBridge, "dungeons") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_dungeons_required.value, items=dungeon_events)) \
+         | (OptionFilter(RainbowBridge, "stones") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_stones_required.value, items="Stones", greg=greg)) \
+         | (OptionFilter(RainbowBridge, "medallions") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_medallions_required.value, items = "Medallions", greg=greg)) \
+         | (OptionFilter(RainbowBridge, "dungeon_rewards") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_dungeon_rewards_required.value, items = "Stones,Medallions", greg=greg)) \
+         | (OptionFilter(RainbowBridge, "dungeons") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_dungeons_required.value, items=dungeon_events, greg=greg)) \
          | (OptionFilter(RainbowBridge, "tokens") & Has(Items.GOLD_SKULLTULA_TOKEN, count=world.options.rainbow_bridge_skull_tokens_required.value)) \
          | (OptionFilter(RainbowBridge, "greg") & Has(Items.GREG_THE_GREEN_RUPEE))
 
 
 def can_trigger_lacs(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     world = bundle[1]
+    greg: bool = False
+
+    if world.options.ganons_castle_boss_key_greg_modifier == "reward":
+        greg = True
+
     return (OptionFilter(GanonsCastleBossKey, ["vanilla", "anywhere", "lacs_vanilla"], operator="in") & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle)) \
-         | (OptionFilter(GanonsCastleBossKey, "lacs_stones") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_stones_required.value, items="Stones"))\
-         | (OptionFilter(GanonsCastleBossKey, "lacs_medallions") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_medallions_required.value, items="Medallions")) \
-         | (OptionFilter(GanonsCastleBossKey, "lacs_dungeon_rewards") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeon_rewards_required.value, items="Stones,Medallions")) \
-         | (OptionFilter(GanonsCastleBossKey, "lacs_dungeons") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeons_required.value, items=dungeon_events)) \
+         | (OptionFilter(GanonsCastleBossKey, "lacs_stones") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_stones_required.value, items="Stones", greg=greg))\
+         | (OptionFilter(GanonsCastleBossKey, "lacs_medallions") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_medallions_required.value, items="Medallions", greg=greg)) \
+         | (OptionFilter(GanonsCastleBossKey, "lacs_dungeon_rewards") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeon_rewards_required.value, items="Stones,Medallions", greg=greg)) \
+         | (OptionFilter(GanonsCastleBossKey, "lacs_dungeons") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeons_required.value, items=dungeon_events, greg=greg)) \
          | (OptionFilter(GanonsCastleBossKey, "lacs_skull_tokens") & Has(Items.GOLD_SKULLTULA_TOKEN, count=world.options.ganons_castle_boss_key_skull_tokens_required.value))
 
 
@@ -1123,15 +1133,8 @@ def effective_health_above(bundle: tuple[Regions, "SohWorld"], count: int) -> Ru
         return False_()
 
 
-def is_fire_loop_locked(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    if bundle[1].options.small_key_shuffle in ("anywhere", "overworld", "any_dungeon"):
-        return False_()
-    return True_()
-
 def is_fire_loop_unlocked(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    if bundle[1].options.small_key_shuffle in ("anywhere", "overworld", "any_dungeon"):
-        return True_()
-    return False_()
+    return True_(options=[OptionFilter(SmallKeyShuffle, ["anywhere", "overworld", "any_dungeon"], operator="in")])
 
 
 def can_ground_jump(bundle: tuple[Regions, "SohWorld"], hasBombFlower: bool = False) -> Rule:

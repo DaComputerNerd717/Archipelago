@@ -938,27 +938,34 @@ def small_keys(key: Items, requiredAmount: int, bundle: tuple[Regions, "SohWorld
 
 def can_get_enemy_drop(bundle: tuple[Regions, "SohWorld"], enemy: Enemies,
                        distance: EnemyDistance = EnemyDistance.CLOSE, aboveLink: bool = False) -> Rule:
+    rule: Rule = can_kill_enemy(bundle, enemy, distance)
     if distance.value <= EnemyDistance.MASTER_SWORD_JUMPSLASH.value:
-        return True_()
-    rule = can_kill_enemy(bundle, enemy, distance)
+        return rule
     match enemy:
         case Enemies.GOLD_SKULLTULA:
+            gs_rule: Rule = False_()
             if distance <= EnemyDistance.BOOMERANG:
-                rule |= can_use(Items.BOOMERANG, bundle)
+                gs_rule |= can_use(Items.BOOMERANG, bundle)
             if distance <= EnemyDistance.HOOKSHOT:
-                rule |= can_use(Items.HOOKSHOT, bundle)
+                gs_rule |= can_use(Items.HOOKSHOT, bundle)
             if distance <= EnemyDistance.LONGSHOT:
-                rule |= can_use(Items.LONGSHOT, bundle)
-            return rule
+                gs_rule |= can_use(Items.LONGSHOT, bundle)
+            return rule & gs_rule
         case Enemies.KEESE:
-            return True_()
+            return rule
         case Enemies.FIRE_KEESE:
-            return True_()
+            return rule
         case _:
             if aboveLink:
-                return True_()
-            if distance.value <= EnemyDistance.BOOMERANG.value:
-                return can_use(Items.BOOMERANG, bundle)
+                return rule
+            default_rule: Rule = False_()
+            if distance <= EnemyDistance.BOOMERANG:
+                default_rule |= can_use(Items.BOOMERANG, bundle)
+            if distance <= EnemyDistance.HOOKSHOT:
+                default_rule |= can_use(Items.HOOKSHOT, bundle)
+            if distance <= EnemyDistance.LONGSHOT:
+                default_rule |= can_use(Items.LONGSHOT, bundle)
+            return rule & default_rule
     return False_()
 
 def can_detonate_bomb_flowers(bundle: tuple[Regions, "SohWorld"]) -> Rule:

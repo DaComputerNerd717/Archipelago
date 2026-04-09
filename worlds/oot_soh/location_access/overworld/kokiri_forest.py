@@ -30,7 +30,7 @@ def set_region_rules(world: "SohWorld") -> None:
         (EventLocations.MIDO, LocalEvents.MIDO_SWORD_AND_SHIELD, lambda bundle: (is_child(bundle)
             & has_item(Items.KOKIRI_SWORD, bundle)
             & has_item(Items.DEKU_SHIELD, bundle))
-         | OptionFilter(ClosedForest, "off")),
+         | OptionFilter(ClosedForest, ClosedForest.option_off)),
         (EventLocations.KF_GOSSIP_STONE_SONG_FAIRY, Events.CAN_ACCESS_FAIRIES,
          lambda bundle: call_gossip_fairy_except_suns(bundle)),
         (EventLocations.KF_SOFT_SOIL, LocalEvents.KF_BEAN_PLANTED, lambda bundle: is_child(bundle) &
@@ -178,9 +178,9 @@ def set_region_rules(world: "SohWorld") -> None:
                                                         has_item(Events.FOREST_TEMPLE_COMPLETED, bundle)))
          | (is_child(bundle) & has_item(LocalEvents.MIDO_SWORD_AND_SHIELD, bundle))
          # Todo, maybe create a helper for handling settings
-         | OptionFilter(ClosedForest, "off")),
+         | OptionFilter(ClosedForest, ClosedForest.option_off)),
         (Regions.LOST_WOODS, lambda bundle: True_()),
-        (Regions.LW_BRIDGE_FROM_FOREST, lambda bundle: OptionFilter(ClosedForest, ["deku_only", "off"], operator="in") | is_adult(bundle) |
+        (Regions.LW_BRIDGE_FROM_FOREST, lambda bundle: OptionFilter(ClosedForest, [ClosedForest.option_deku_only, ClosedForest.option_off], operator="in") | is_adult(bundle) |
          has_item(Events.DEKU_TREE_COMPLETED, bundle)),
         (Regions.KF_STORMS_GROTTO, lambda bundle: can_open_storms_grotto(bundle))
     ])
@@ -195,7 +195,7 @@ def set_region_rules(world: "SohWorld") -> None:
         (EventLocations.MIDO_FROM_OUTSIDE_DEKU_TREE, LocalEvents.MIDO_SWORD_AND_SHIELD, lambda bundle: (is_child(bundle)
                                                                                                         & has_item(Items.KOKIRI_SWORD, bundle)
                                                                                                         & has_item(Items.DEKU_SHIELD, bundle))
-         | OptionFilter(ClosedForest, "off")),
+         | OptionFilter(ClosedForest, ClosedForest.option_off)),
         (EventLocations.KF_DEKU_TREE_GOSSIP_STONE_SONG_FAIRY, Events.CAN_ACCESS_FAIRIES,
          lambda bundle: (call_gossip_fairy_except_suns(bundle))),
     ])
@@ -213,13 +213,13 @@ def set_region_rules(world: "SohWorld") -> None:
     connect_regions(Regions.KF_OUTSIDE_DEKU_TREE, world, [
         (Regions.DEKU_TREE_ENTRYWAY, lambda bundle: (is_child(bundle))
          # Todo: Add dungeons shuffle rule when entrance shuffle is implementedd
-         & (OptionFilter(ClosedForest, "off")
+         & (OptionFilter(ClosedForest, ClosedForest.option_off)
               | has_item(LocalEvents.MIDO_SWORD_AND_SHIELD, bundle))),
         (Regions.KOKIRI_FOREST, lambda bundle:  (is_adult(bundle) &
                                                  (can_pass_enemy(bundle, Enemies.BIG_SKULLTULA) |
                                                   has_item(Events.FOREST_TEMPLE_COMPLETED, bundle)))
          | has_item(LocalEvents.MIDO_SWORD_AND_SHIELD, bundle)
-         | OptionFilter(ClosedForest, "off"))
+         | OptionFilter(ClosedForest, ClosedForest.option_off))
     ])
 
     # KF Link's House

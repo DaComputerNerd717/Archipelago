@@ -160,7 +160,7 @@ def set_region_rules(world: "SohWorld") -> None:
         (Regions.ZR_FROM_SHORTCUT, lambda bundle: has_item(
             Items.SILVER_SCALE, bundle) | can_use(Items.IRON_BOOTS, bundle)),
         (Regions.ZR_STORMS_GROTTO, lambda bundle: can_open_storms_grotto(bundle)),
-        (Regions.ZR_BEHIND_WATERFALL, lambda bundle: OptionFilter(SleepingWaterfall, "open") |
+        (Regions.ZR_BEHIND_WATERFALL, lambda bundle: OptionFilter(SleepingWaterfall, SleepingWaterfall.option_open) |
          can_use(Items.ZELDAS_LULLABY, bundle) |
          (is_child(bundle) &
           can_do_trick(Tricks.ZR_CUCCO, bundle)) |

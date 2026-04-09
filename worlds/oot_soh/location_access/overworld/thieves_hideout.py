@@ -124,14 +124,14 @@ def set_region_rules(world: "SohWorld") -> None:
     add_events(Regions.THIEVES_HIDEOUT_RESCUE_CARPENTERS, world, [
         (EventsLocations.TH_RESCUED_ALL_CARPENTERS, Events.RESCUED_ALL_CARPENTERS,
          lambda bundle: (((small_keys(Items.GERUDO_FORTRESS_SMALL_KEY, 4,
-                                      bundle) & OptionFilter(FortressCarpenters, 0))
+                                      bundle) & OptionFilter(FortressCarpenters, FortressCarpenters.option_normal))
                           | (small_keys(Items.GERUDO_FORTRESS_SMALL_KEY, 1,
-                                         bundle) & OptionFilter(FortressCarpenters, 1)))
+                                         bundle) & OptionFilter(FortressCarpenters, FortressCarpenters.option_fast)))
                          & has_item(LocalEvents.TH_DOUBLE_CELL_CARPENTER_FREED, bundle)
                          & has_item(LocalEvents.TH_STEEP_SLOPE_CELL_CARPENTER_FREED, bundle)
                          & has_item(LocalEvents.TH_DEAD_END_CELL_CARPENTER_FREED, bundle)
                          & has_item(LocalEvents.TH_1_TORCH_CELL_CARPENTER_FREED, bundle))
-         | OptionFilter(FortressCarpenters, 2))
+         | OptionFilter(FortressCarpenters, FortressCarpenters.option_free))
     ])
     # Locations
     add_locations(Regions.THIEVES_HIDEOUT_RESCUE_CARPENTERS, world, [

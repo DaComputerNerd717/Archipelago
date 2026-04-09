@@ -51,9 +51,9 @@ def set_region_rules(world: "SohWorld") -> None:
     connect_regions(Regions.TEMPLE_OF_TIME, world, [
         (Regions.TOT_ENTRANCE, lambda bundle: True_()),
         (Regions.BEYOND_DOOR_OF_TIME,
-         lambda bundle: OptionFilter(DoorOfTime, "open") |
+         lambda bundle: OptionFilter(DoorOfTime, DoorOfTime.option_open) |
          (can_use(Items.SONG_OF_TIME, bundle) &
-          (OptionFilter(DoorOfTime, "song_only") |
+          (OptionFilter(DoorOfTime, DoorOfTime.option_song_only) |
            (has_enough_stones(bundle, 3) & has_item(Items.OCARINA_OF_TIME, bundle))))),
     ])
 

@@ -53,7 +53,7 @@ def set_region_rules(world: "SohWorld") -> None:
         (Regions.ZF_ROCK, lambda bundle: is_adult(
             bundle) & can_use(Items.SCARECROW, bundle)),
         (Regions.JABU_JABUS_BELLY_ENTRYWAY,
-         lambda bundle: is_child(bundle) & (can_use(Items.BOTTLE_WITH_FISH, bundle) | OptionFilter(JabuJabu, True))),
+         lambda bundle: is_child(bundle) & (can_use(Items.BOTTLE_WITH_FISH, bundle) | OptionFilter(JabuJabu, JabuJabu.option_open))),
         (Regions.ZF_GREAT_FAIRY_FOUNTAIN, lambda bundle: has_explosives(bundle) | (can_do_trick(
             Tricks.ZF_GREAT_FAIRY_WITHOUT_EXPLOSIVES, bundle) & can_use(Items.MEGATON_HAMMER, bundle) & can_use(Items.SILVER_GAUNTLETS, bundle)))
     ])

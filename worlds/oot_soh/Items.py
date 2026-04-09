@@ -347,16 +347,7 @@ no_rules_bottles = [
     Items.BOTTLE_WITH_FISH,
     Items.BOTTLE_WITH_BLUE_FIRE,
     Items.BOTTLE_WITH_BUGS,
-]
-
-filler_bottles = [
-    *no_rules_bottles,
-    Items.BOTTLE_WITH_POE,
-]
-
-all_bottles: list[Items] = [
-    *filler_bottles,
-    Items.BOTTLE_WITH_RUTOS_LETTER,
+    Items.BOTTLE_WITH_POE
 ]
 
 progressive_items: dict[str, tuple[str, ...]] = {

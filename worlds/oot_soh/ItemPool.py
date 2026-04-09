@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 from .Enums import *
-from .Items import item_data_table, filler_items, filler_bottles, SohItem
+from .Items import item_data_table, filler_items, no_rules_bottles, SohItem
 from .Regions import dungeon_reward_item_mapping, small_key_vanilla_mapping, dungeon_boss_key_vanilla_mapping
 from .LogicHelpers import key_to_ring
 from .KeyShuffle import small_key_option_matching
@@ -617,7 +617,7 @@ def get_filler_item(world: "SohWorld") -> str:
 
 
 def get_filler_bottle(world: "SohWorld") -> str:
-    return world.random.choice(filler_bottles)
+    return world.random.choice(no_rules_bottles)
 
 
 def give_starting_items(world: "SohWorld") -> None:

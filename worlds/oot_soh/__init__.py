@@ -75,7 +75,7 @@ class SohSettings(Group):
     soh_install_path: SOHInstallPath | None = None
 
 
-class SohWorld(CachedRuleBuilderWorld):
+class SohWorld(World):
     """A PC Port of Ocarina of Time"""
 
     game = "Ship of Harkinian"

@@ -744,7 +744,7 @@ class TestRules(RuleBuilderTestCase):
 
     def test_completion_rule(self) -> None:
         rule = Has("Item 1")
-        self.world.set_completion_rule(rule)
+        self.world.setup_completion_rule(rule)
         self.assertEqual(self.multiworld.can_beat_game(self.state), False)
         self.state.collect(self.world.create_item("Item 1"))
         self.assertEqual(self.multiworld.can_beat_game(self.state), True)

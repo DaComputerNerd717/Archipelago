@@ -5,6 +5,7 @@ from typing import Any, ClassVar, Callable
 
 from BaseClasses import CollectionState, Item, Tutorial, ItemClassification, Location
 from rule_builder.cached_world import CachedRuleBuilderWorld
+from rule_builder.rules import Has
 from worlds.AutoWorld import WebWorld, World
 from Fill import fill_restrictive
 from .location_access.overworld.castle_grounds import LocalEvents
@@ -261,11 +262,12 @@ class SohWorld(CachedRuleBuilderWorld):
     def get_filler_item_name(self) -> str:
         return get_filler_item(self)
 
-    def set_completion_rule(self) -> None:
+    def soh_set_completion_rule(self) -> None:
         if not self.options.true_no_logic:
             # Actual completion condition.
-            self.multiworld.completion_condition[self.player] = lambda state: state.has(
-                Events.GAME_COMPLETED.value, self.player)
+            self.set_completion_rule(Has(Events.GAME_COMPLETED))
+            # self.multiworld.completion_condition[self.player] = lambda state: state.has(
+            #     Events.GAME_COMPLETED.value, self.player)
 
     def get_empty_locations_from_list_shuffled(self, location_list: list[Locations]) -> list[Location]:
         locations = []
@@ -322,7 +324,7 @@ class SohWorld(CachedRuleBuilderWorld):
 
         create_filler_item_pool(self)
 
-        self.set_completion_rule()
+        self.soh_set_completion_rule()
 
     def pre_fill(self) -> None:
         original_completion_goal = self.multiworld.completion_condition[self.player]

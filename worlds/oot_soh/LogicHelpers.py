@@ -156,16 +156,14 @@ def has_item(item: Items | Events | StrEnum, bundle: tuple[Regions, "SohWorld"],
         return scarecrows_song(bundle) & can_use(Items.LONGSHOT, bundle)
 
     if item == Items.FISHING_POLE:
-        return OptionFilter(ShuffleFishingPole, 0) | Has(Items.FISHING_POLE)
-        #return (not world.options.shuffle_fishing_pole) or state.has(Items.FISHING_POLE, player)
+        return OptionFilter(ShuffleFishingPole, False) | Has(Items.FISHING_POLE)
 
     if item == Items.EPONA:
         return Has(Events.FREED_EPONA)
 
     if item in {Items.POCKET_EGG, Items.COJIRO, Items.ODD_MUSHROOM, Items.ODD_POTION, Items.POACHERS_SAW,
                 Items.BROKEN_GORONS_SWORD, Items.PRESCRIPTION, Items.EYEBALL_FROG, Items.WORLDS_FINEST_EYEDROPS}:
-        return OptionFilter(ShuffleAdultTradeItems, 0) | Has(item)
-        # return not world.options.shuffle_adult_trade_items or state.has(item, player)
+        return OptionFilter(ShuffleAdultTradeItems, False) | Has(item)
 
     if item == Items.BOTTLE_WITH_BLUE_FIRE:
         return has_bottle(bundle) & (Has(Events.CAN_ACCESS_BLUE_FIRE) | Has(Items.BUY_BLUE_FIRE))
@@ -204,30 +202,60 @@ class CanAffordSlot(Rule, game="Ship of Harkinian"):
     location: Locations
 
     def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
-        return self.Resolved(location = self.location, player = world.player)
+        return self.Resolved(location = self.location, player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
         location: Locations
         player: int
         def _evaluate(self, state: CollectionState) -> bool:
             world = state.multiworld.worlds[self.player]
-            assert self.location in world.shop_prices, f'Shop location "{str(self.location)}" does not have a price assigned'
-
-            price = world.shop_prices.get(self.location, 500)
-            for wallet, amount in wallet_capacities.items():
-                if amount >= price:
-                    return Has(str(wallet)).resolve(world)._evaluate(state)
+            return Has(str(get_wallet_for_shop_slot(self.location, world)[0])).resolve(world)._evaluate(state)
 
         def item_dependencies(self) -> dict[str, set[int]]:
             return {str(Items.PROGRESSIVE_WALLET): set()}
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            data = get_wallet_for_shop_slot(self.location, state.multiworld.worlds[self.player])
+            verb = "Missing " if state and not self(state) else "Has "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "color", "color": color, "text": data[0]})
+                messages.append({"type": "text", "text": f" to buy item for "})
+                messages.append({"type": "color", "color": "cyan", "text": str(data[1])})
+                messages.append({"type": "text", "text": f" rupees"})
+            else:
+                messages.append({"type": "item_name", "flags": 0b001, "text": data[0], "player": self.player})
+            return messages
 
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            data = get_wallet_for_shop_slot(self.location, state.multiworld.worlds[self.player])
+            if state is None:
+                return str(self)
+            prefix = "Has" if self(state) else "Missing"
+            return f"{prefix} {data[0]} to buy item for {str(data[1])} rupees"
+
+        @override
+        def __str__(self) -> str:
+            return f"Has wallet large enough to buy the item at {str(self.location)}"
+
+
+def get_wallet_for_shop_slot(location: Locations, world: "SohWorld") -> str:
+    assert location in world.shop_prices, f'Shop location "{str(location)}" does not have a price assigned'
+
+    price = world.shop_prices.get(location, 500)
+    for wallet, amount in wallet_capacities.items():
+        if amount >= price:
+            return str(wallet), price
 
 def can_afford_slot(slot: Locations, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return CanAffordSlot(slot)
 
 
 def scarecrows_song(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return ((OptionFilter(SkipScarecrowsSong, 1) & has_item(Items.FAIRY_OCARINA, bundle)
+    return ((OptionFilter(SkipScarecrowsSong, True) & has_item(Items.FAIRY_OCARINA, bundle)
             & has_enough_ocarina_buttons(bundle, 2))
             | (has_item(Events.CHILD_SCARECROW_UNLOCKED, bundle) & has_item(Events.ADULT_SCARECROW_UNLOCKED, bundle)))
 
@@ -237,18 +265,18 @@ def has_bottle(bundle: tuple[Regions, "SohWorld"]) -> Rule:  # soup
 
 
 def has_bottle_count(target_count: int) -> Rule:
-    return HasAll(Events.DELIVER_LETTER, Events.CAN_EMPTY_BIG_POES) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_BIG_POE, Items.BOTTLE_WITH_RUTOS_LETTER, count=target_count) \
-            | Has(Events.DELIVER_LETTER) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_RUTOS_LETTER, count=target_count) \
-            | Has(Events.CAN_EMPTY_BIG_POES) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_BIG_POE, count=target_count) \
+    return (HasAll(Events.DELIVER_LETTER, Events.CAN_EMPTY_BIG_POES) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_BIG_POE, Items.BOTTLE_WITH_RUTOS_LETTER, count=target_count)) \
+            | (Has(Events.DELIVER_LETTER) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_RUTOS_LETTER, count=target_count)) \
+            | (Has(Events.CAN_EMPTY_BIG_POES) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_BIG_POE, count=target_count)) \
             | HasFromList(*no_rules_bottles, count=target_count)
 
 
 def bombchu_refill(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return OptionFilter(BombchuDrops, 1) | HasAny(Items.BUY_BOMBCHUS10, Items.BUY_BOMBCHUS20, Events.COULD_PLAY_BOWLING, Events.CARPET_MERCHANT)
+    return OptionFilter(BombchuDrops, True) | HasAny(Items.BUY_BOMBCHUS10, Items.BUY_BOMBCHUS20, Events.COULD_PLAY_BOWLING, Events.CARPET_MERCHANT)
 
 
 def bombchus_enabled(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return Has(Items.BOMBCHU_BAG) | Has(Items.BOMB_BAG, options=[OptionFilter(BombchuBag, 0)])
+    return Has(Items.BOMBCHU_BAG) | Has(Items.BOMB_BAG, options=[OptionFilter(BombchuBag, False)])
 
 
 ocarina_buttons_required: dict[str, list[str]] = {
@@ -268,7 +296,7 @@ ocarina_buttons_required: dict[str, list[str]] = {
 
 
 def can_play_song(song: StrEnum, bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return HasAll(Items.FAIRY_OCARINA, song) & (OptionFilter(ShuffleOcarinaButtons, 0) | HasAll(*ocarina_buttons_required[song]))
+    return HasAll(Items.FAIRY_OCARINA, song) & (OptionFilter(ShuffleOcarinaButtons, False) | HasAll(*ocarina_buttons_required[song]))
 
 
 def has_explosives(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -287,7 +315,7 @@ def blue_fire(bundle: tuple[Regions, "SohWorld"]) -> Rule:
              (has_item(Events.CAN_ACCESS_BLUE_FIRE, bundle) |
               has_item(Items.BUY_BLUE_FIRE, bundle))) |
             (can_use(Items.ICE_ARROW, bundle) &
-             OptionFilter(BlueFireArrows, 1)))
+             OptionFilter(BlueFireArrows, True)))
 
 
 def can_use_sword(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -326,7 +354,7 @@ class IsAdult(Rule, game="Ship of Harkinian"):
     parent_region: Regions
 
     def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
-        return self.Resolved(parent_region = self.parent_region, player = world.player)
+        return self.Resolved(parent_region = self.parent_region, player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
         #bundle pieces
@@ -341,13 +369,36 @@ class IsAdult(Rule, game="Ship of Harkinian"):
         
         def region_dependencies(self) -> dict[str, set[int]]:
             return {self.parent_region.value: {id(self)}}
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            verb = "Can not " if state and not self(state) else "Can "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "text", "text": "reach "})
+                messages.append({"type": "color", "color": "cyan", "text": f"{self.parent_region} "})
+                messages.append({"type": "text", "text": "as "})
+                messages.append({"type": "color", "color": color, "text": "Adult Link"})
+            return messages
+        
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            if state is None:
+                return str(self)
+            prefix = "Can" if self(state) else "Can not"
+            return f"{prefix} reach {str(self.parent_region)} as Adult Link"
+
+        @override
+        def __str__(self) -> str:
+            return f"Can reach {str(self.parent_region)} as Adult Link"
 
 @dataclasses.dataclass
 class IsChild(Rule, game="Ship of Harkinian"):
     parent_region: Regions
 
     def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
-        return self.Resolved(parent_region = self.parent_region, player = world.player)
+        return self.Resolved(parent_region = self.parent_region, player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
         #bundle pieces
@@ -362,6 +413,29 @@ class IsChild(Rule, game="Ship of Harkinian"):
         
         def region_dependencies(self) -> dict[str, set[int]]:
             return {self.parent_region.value: {id(self)}}
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            verb = "Can not " if state and not self(state) else "Can "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "text", "text": "reach "})
+                messages.append({"type": "color", "color": "cyan", "text": f"{self.parent_region} "})
+                messages.append({"type": "text", "text": "as "})
+                messages.append({"type": "color", "color": color, "text": "Child Link"})
+            return messages
+        
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            if state is None:
+                return str(self)
+            prefix = "Can" if self(state) else "Can not"
+            return f"{prefix} reach {self.parent_region} as Child Link"
+
+        @override
+        def __str__(self) -> str:
+            return f"Can reach {self.parent_region} as Child Link"
 
 #Build the rules
 def is_child(bundle: tuple[Regions, "SohWorld"]):
@@ -382,7 +456,7 @@ def at_night(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     # TODO: Implement starting time of day if that ever gets added
 
 def starting_age(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return IsChild(bundle[0], options=[OptionFilter(StartingAge, 'child')]) | IsAdult(bundle[0], options=[OptionFilter(StartingAge, 'adult')])
+    return IsChild(bundle[0], options=[OptionFilter(StartingAge, StartingAge.option_child)]) | IsAdult(bundle[0], options=[OptionFilter(StartingAge, StartingAge.option_adult)])
 
 
 def can_damage(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -416,12 +490,11 @@ def take_damage(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 def can_do_trick(trick: Tricks, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     # check if we have the trick enabled, the GLITCHED item is for Universal Tracker purposes.
-    return OptionFilter(EnableAllTricks, 1) | Has(Items.GLITCHED) | OptionFilter(TricksInLogic, trick.value, "contains")
-    #return (bool(bundle[1].options.enable_all_tricks.value) or trick.value in bundle[1].options.tricks_in_logic.value) or has_item(Items.GLITCHED, bundle)
+    return OptionFilter(EnableAllTricks, True) | Has(Items.GLITCHED) | OptionFilter(TricksInLogic, trick.value, "contains")
 
 
 def can_get_nighttime_gs(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return at_night(bundle) & (OptionFilter(SkullsSunSong, 0) | can_use(Items.SUNS_SONG, bundle))
+    return at_night(bundle) & (OptionFilter(SkullsSunSong, False) | can_use(Items.SUNS_SONG, bundle))
 
 
 def can_break_pots(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -494,7 +567,7 @@ def can_break_lower_hives(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 def can_break_upper_beehives(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return (hookshot_or_boomerang(bundle) | 
             (can_do_trick(Tricks.BOMBCHU_BEEHIVES, bundle) & can_use(Items.BOMBCHU_BAG, bundle)) |
-            (OptionFilter(SlingbowBreakBeehives, 1) & (can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT], bundle))))
+            (OptionFilter(SlingbowBreakBeehives, True) & (can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT], bundle))))
 
 
 def can_open_storms_grotto(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -516,7 +589,6 @@ def can_hit_at_range(bundle: tuple[Regions, "SohWorld"],
     if distance <= EnemyDistance.BOMB_THROW and not in_water:
         rule |= can_use(Items.BOMB_BAG, bundle)
     if distance <= EnemyDistance.HOOKSHOT:
-        #
         wof = True_() if wall_or_floor else False_()
         rule |= can_use(Items.HOOKSHOT, bundle) | (wof & can_use(Items.BOMBCHUS_5, bundle))
     if distance <= EnemyDistance.LONGSHOT:
@@ -778,9 +850,10 @@ def can_kill_enemy(bundle: tuple[Regions, "SohWorld"], enemy: Enemies, distance:
 
 
 def has_boss_soul(soul: Items, bundle: tuple[Regions, "SohWorld"]):
-    if soul == Items.GANONS_SOUL:
-        return OptionFilter(ShuffleBossSouls, [0, 1], "in") | has_item(soul, bundle) #ganons soul not shuffled or we have it
-    return OptionFilter(ShuffleBossSouls, 0) | has_item(soul, bundle) #souls not shuffled or we have it
+    soulsanity = bundle[1].options.shuffle_boss_souls
+    if soulsanity == "off" or (soul == Items.GANONS_SOUL and soulsanity == "on"):
+        return True_()
+    return has_item(soul, bundle)
 
 
 def can_pass_enemy(bundle: tuple[Regions, "SohWorld"], enemy: Enemies,
@@ -865,27 +938,34 @@ def small_keys(key: Items, requiredAmount: int, bundle: tuple[Regions, "SohWorld
 
 def can_get_enemy_drop(bundle: tuple[Regions, "SohWorld"], enemy: Enemies,
                        distance: EnemyDistance = EnemyDistance.CLOSE, aboveLink: bool = False) -> Rule:
+    rule: Rule = can_kill_enemy(bundle, enemy, distance)
     if distance.value <= EnemyDistance.MASTER_SWORD_JUMPSLASH.value:
-        return True_()
-    rule = can_kill_enemy(bundle, enemy, distance)
+        return rule
     match enemy:
         case Enemies.GOLD_SKULLTULA:
+            gs_rule: Rule = False_()
             if distance <= EnemyDistance.BOOMERANG:
-                rule |= can_use(Items.BOOMERANG, bundle)
+                gs_rule |= can_use(Items.BOOMERANG, bundle)
             if distance <= EnemyDistance.HOOKSHOT:
-                rule |= can_use(Items.HOOKSHOT, bundle)
+                gs_rule |= can_use(Items.HOOKSHOT, bundle)
             if distance <= EnemyDistance.LONGSHOT:
-                rule |= can_use(Items.LONGSHOT, bundle)
-            return rule
+                gs_rule |= can_use(Items.LONGSHOT, bundle)
+            return rule & gs_rule
         case Enemies.KEESE:
-            return True_()
+            return rule
         case Enemies.FIRE_KEESE:
-            return True_()
+            return rule
         case _:
             if aboveLink:
-                return True_()
-            if distance.value <= EnemyDistance.BOOMERANG.value:
-                return can_use(Items.BOOMERANG, bundle)
+                return rule
+            default_rule: Rule = False_()
+            if distance <= EnemyDistance.BOOMERANG:
+                default_rule |= can_use(Items.BOOMERANG, bundle)
+            if distance <= EnemyDistance.HOOKSHOT:
+                default_rule |= can_use(Items.HOOKSHOT, bundle)
+            if distance <= EnemyDistance.LONGSHOT:
+                default_rule |= can_use(Items.LONGSHOT, bundle)
+            return rule & default_rule
     return False_()
 
 def can_detonate_bomb_flowers(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -905,7 +985,7 @@ def item_group_count_enough(item_group: str, count: int):
 
 
 def has_enough_ocarina_buttons(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
-    return OptionFilter(ShuffleOcarinaButtons, 0) | HasGroup("Ocarina Buttons", amount)
+    return OptionFilter(ShuffleOcarinaButtons, False) | HasGroup("Ocarina Buttons", amount)
 
 
 def has_enough_stones(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
@@ -942,7 +1022,7 @@ def water_timer_above(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
 class HeartsAbove(Rule, game="Ship of Harkinian"):
     amount: int
     def _instantiate(self, world: World) -> Rule.Resolved:
-        return self.Resolved(player=world.player, amount = self.amount)
+        return self.Resolved(player=world.player, amount = self.amount, caching_enabled=getattr(world, "rule_caching_enabled", False))
     class Resolved(Rule.Resolved):
         player: int
         amount: int
@@ -951,6 +1031,33 @@ class HeartsAbove(Rule, game="Ship of Harkinian"):
         
         def item_dependencies(self) -> dict[str, set[int]]:
             return {str(item_id): {id(self)} for item_id in (Items.HEART_CONTAINER, Items.PIECE_OF_HEART, Items.PIECE_OF_HEART_WINNER)}
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            verb = "Does not have " if state and not self(state) else "Has "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "color", "color": "cyan", "text": str(self.amount)})
+
+                if self.count > 1:
+                    messages.append({"type": "color", "color": color, "text": " hearts "})
+                else:
+                    messages.append({"type": "color", "color": color, "text": " heart "})
+
+                messages.append({"type": "text", "text": f"or more"})
+            return messages
+        
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            if state is None:
+                return str(self)
+            prefix = "Has" if self(state) else "Does not have"
+            return f"{prefix} {self.amount} or more"
+
+        @override
+        def __str__(self) -> str:
+            return f"Has {self.amount} hearts or more"
 
 def hearts_above(bundle: tuple[Regions, "SohWorld"], amount) -> Rule:
     return HeartsAbove(amount=amount)
@@ -962,11 +1069,14 @@ def can_open_bomb_grotto(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 def trade_quest_step(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     # If adult trade shuffle is off, it'll automatically assume the whole trade quest is complete as soon as claim check is obtained.
-    rule = OptionFilter(ShuffleAdultTradeItems, 0) & has_item(Items.CLAIM_CHECK, bundle)
+    if not bundle[1].options.shuffle_adult_trade_items:
+        return has_item(Items.CLAIM_CHECK, bundle)
+
+    rule: Rule = False_()
     # Since the original used fallthrough, we will loop through all trade quest items after this point too
     trade_items = [Items.POCKET_EGG, Items.COJIRO, Items.ODD_MUSHROOM, Items.ODD_POTION, Items.POACHERS_SAW, Items.BROKEN_GORONS_SWORD, Items.PRESCRIPTION, Items.WORLDS_FINEST_EYEDROPS, Items.CLAIM_CHECK]
     if item not in trade_items:
-        return False_()
+        return rule
     pos = trade_items.index(item)
     for i in range(pos, len(trade_items)):
         rule |= has_item(trade_items[i], bundle)
@@ -976,39 +1086,49 @@ def trade_quest_step(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
 class ItemsPlusGregEnough(Rule, game="Ship of Harkinian"):
     target: int
     items: str | list[Items] | list[Events]
+    greg: bool
     def _instantiate(self, world: World) -> Rule.Resolved:
         world = cast("SohWorld", world)
-        items = []
+        items = list()
         if isinstance(self.items, str):
             for group in self.items.split(","):
                 items.extend(world.item_name_groups[group])
         else:
             items = list(self.items)
-        if world.options.rainbow_bridge_greg_modifier == "reward":
+        if self.greg:
             items.append(Items.GREG_THE_GREEN_RUPEE)
         return HasFromList(*items, count=self.target).resolve(world)
 
 def can_build_rainbow_bridge(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     world = bundle[1]
+    greg: bool = False
 
-    return OptionFilter(RainbowBridge, "always_open") \
-         | (OptionFilter(RainbowBridge, "vanilla") & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle) & can_use(Items.LIGHT_ARROW, bundle)) \
-         | (OptionFilter(RainbowBridge, "stones") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_stones_required.value, items="Stones")) \
-         | (OptionFilter(RainbowBridge, "medallions") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_medallions_required.value, items = "Medallions")) \
-         | (OptionFilter(RainbowBridge, "dungeon_rewards") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_dungeon_rewards_required.value, items = "Stones,Medallions")) \
-         | (OptionFilter(RainbowBridge, "dungeons") & ItemsPlusGregEnough(target=world.options.rainbow_bridge_dungeons_required.value, items=dungeon_events)) \
-         | (OptionFilter(RainbowBridge, "tokens") & Has(Items.GOLD_SKULLTULA_TOKEN, count=world.options.rainbow_bridge_skull_tokens_required.value)) \
-         | (OptionFilter(RainbowBridge, "greg") & Has(Items.GREG_THE_GREEN_RUPEE))
+    if world.options.rainbow_bridge_greg_modifier == "reward":
+        greg = True
+
+    return OptionFilter(RainbowBridge, RainbowBridge.option_always_open) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_vanilla) & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle) & can_use(Items.LIGHT_ARROW, bundle)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_stones) & ItemsPlusGregEnough(target=world.options.rainbow_bridge_stones_required.value, items="Stones", greg=greg)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_medallions) & ItemsPlusGregEnough(target=world.options.rainbow_bridge_medallions_required.value, items = "Medallions", greg=greg)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_dungeon_rewards) & ItemsPlusGregEnough(target=world.options.rainbow_bridge_dungeon_rewards_required.value, items = "Stones,Medallions", greg=greg)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_dungeons) & ItemsPlusGregEnough(target=world.options.rainbow_bridge_dungeons_required.value, items=dungeon_events, greg=greg)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_tokens) & Has(Items.GOLD_SKULLTULA_TOKEN, count=world.options.rainbow_bridge_skull_tokens_required.value)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_greg) & Has(Items.GREG_THE_GREEN_RUPEE))
 
 
 def can_trigger_lacs(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     world = bundle[1]
-    return (OptionFilter(GanonsCastleBossKey, ["vanilla", "anywhere", "lacs_vanilla"], operator="in") & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle)) \
-         | (OptionFilter(GanonsCastleBossKey, "lacs_stones") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_stones_required.value, items="Stones"))\
-         | (OptionFilter(GanonsCastleBossKey, "lacs_medallions") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_medallions_required.value, items="Medallions")) \
-         | (OptionFilter(GanonsCastleBossKey, "lacs_dungeon_rewards") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeon_rewards_required.value, items="Stones,Medallions")) \
-         | (OptionFilter(GanonsCastleBossKey, "lacs_dungeons") & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeons_required.value, items=dungeon_events)) \
-         | (OptionFilter(GanonsCastleBossKey, "lacs_skull_tokens") & Has(Items.GOLD_SKULLTULA_TOKEN, count=world.options.ganons_castle_boss_key_skull_tokens_required.value))
+    greg: bool = False
+
+    if world.options.ganons_castle_boss_key_greg_modifier == "reward":
+        greg = True
+
+    return (OptionFilter(GanonsCastleBossKey, [GanonsCastleBossKey.option_vanilla, GanonsCastleBossKey.option_anywhere, GanonsCastleBossKey.option_lacs_vanilla], operator="in") & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle)) \
+         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_stones) & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_stones_required.value, items="Stones", greg=greg))\
+         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_medallions) & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_medallions_required.value, items="Medallions", greg=greg)) \
+         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_dungeon_rewards) & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeon_rewards_required.value, items="Stones,Medallions", greg=greg)) \
+         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_dungeons) & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeons_required.value, items=dungeon_events, greg=greg)) \
+         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_skull_tokens) & Has(Items.GOLD_SKULLTULA_TOKEN, count=world.options.ganons_castle_boss_key_skull_tokens_required.value))
 
 
 
@@ -1020,11 +1140,9 @@ def effective_health_above(bundle: tuple[Regions, "SohWorld"], count: int) -> Ru
         return False_()
 
 
-def is_fire_loop_locked(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return True_(options=[OptionFilter(SmallKeyShuffle, ["anywhere", "overworld", "any_dungeon"], operator="in")])
-
 def is_fire_loop_unlocked(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return False_(options=[OptionFilter(SmallKeyShuffle, ["anywhere", "overworld", "any_dungeon"], operator="in")], filtered_resolution=True)
+    return True_(options=[OptionFilter(SmallKeyShuffle, [SmallKeyShuffle.option_anywhere, SmallKeyShuffle.option_overworld, SmallKeyShuffle.option_any_dungeon], operator="in")])
+
 
 def can_ground_jump(bundle: tuple[Regions, "SohWorld"], hasBombFlower: bool = False) -> Rule:
     if hasBombFlower:
@@ -1043,7 +1161,7 @@ def can_clear_stalagmite(bundle: tuple[Regions, "SohWorld"]):
 @dataclasses.dataclass
 class CanWinTriforceHunt(Rule, game="Ship of Harkinian"):
     def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
-        return self.Resolved(player = world.player)
+        return self.Resolved(player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
         item_name: str = str(Items.TRIFORCE_PIECE)
@@ -1053,6 +1171,34 @@ class CanWinTriforceHunt(Rule, game="Ship of Harkinian"):
 
         def item_dependencies(self) -> dict[str, set[int]]:
             return {self.item_name: set()}
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            amount = cast("SohWorld", state.multiworld.worlds[self.player]).triforce_pieces_required
+            verb = "Does not have " if state and not self(state) else "Has "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "color", "color": "cyan", "text": str(amount)})
+
+                if amount > 1:
+                    messages.append({"type": "color", "color": color, "text": " Triforce Pieces "})
+                else:
+                    messages.append({"type": "color", "color": color, "text": " Triforce Piece "})
+
+                messages.append({"type": "text", "text": f"or more"})
+            return messages
+        
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            if state is None:
+                return str(self)
+            prefix = "Has" if self(state) else "Does not have"
+            return f"{prefix} {str(cast("SohWorld", state.multiworld.worlds[self.player]).triforce_pieces_required)} Triforce Pieces or more"
+
+        @override
+        def __str__(self) -> str:
+            return f"Has enough Triforce Pieces to win"
 
 
 class SohHeartState(LogicMixin):

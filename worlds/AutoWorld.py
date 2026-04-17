@@ -645,7 +645,7 @@ class World(metaclass=AutoWorldRegister):
                 self._register_rule_indirects(rule, spot)
         spot.access_rule = rule
 
-    def setup_completion_rule(self, rule: CollectionRule | Rule[Any]) -> None:
+    def set_completion_rule(self, rule: CollectionRule | Rule[Any]) -> None:
         """Set the completion rule for this world"""
         if isinstance(rule, Rule):
             rule = rule.resolve(self)

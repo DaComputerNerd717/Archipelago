@@ -331,7 +331,7 @@ class SohWorld(CachedRuleBuilderWorld):
 
         create_filler_item_pool(self)
 
-        self.soh_set_completion_rule()
+        self.set_completion_rule()
 
     def pre_fill(self) -> None:
         pre_fill_own_dungeon_items(self)

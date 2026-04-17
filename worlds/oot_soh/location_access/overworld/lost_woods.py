@@ -137,7 +137,7 @@ def set_region_rules(world: "SohWorld") -> None:
                   & can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT, Items.BOMBCHUS_5, Items.DINS_FIRE], bundle)))),
         (Locations.LW_GS_BEAN_PATCH_NEAR_THEATER,
          lambda bundle: can_spawn_soil_skull(bundle) & (can_attack(bundle) |
-                                                          (OptionFilter(ShuffleScrubs, 0) & can_reflect_nuts(bundle)))),
+                                                          (OptionFilter(ShuffleScrubs, ShuffleScrubs.option_off) & can_reflect_nuts(bundle)))),
         (Locations.LW_BOULDER_RUPEE, lambda bundle: blast_or_smash(bundle)),
         (Locations.LW_BEAN_SPROUT_NEAR_THEATRE_FAIRY1,
          lambda bundle: is_child(bundle) & has_item(Items.MAGIC_BEAN, bundle) & can_use(Items.SONG_OF_STORMS,

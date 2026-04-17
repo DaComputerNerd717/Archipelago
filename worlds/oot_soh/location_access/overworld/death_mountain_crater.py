@@ -48,8 +48,8 @@ def set_region_rules(world: "SohWorld") -> None:
     connect_regions(Regions.DMC_UPPER_LOCAL, world, [
         (Regions.DMC_UPPER_NEARBY, lambda bundle: True_()),
         (Regions.DMC_LADDER_REGION_NEARBY, lambda bundle: fire_timer_above(bundle, 16) | hearts_above(bundle, 3)),
+        # TODO Implement Dungeon Shuffle Option to replace False
         (Regions.DMC_CENTRAL_NEARBY, lambda bundle: is_adult(bundle) & can_use(Items.GORON_TUNIC, bundle) & can_use(Items.DISTANT_SCARECROW, bundle) & (effective_health_above(bundle, 3) | (can_use(Items.BOTTLE_WITH_FAIRY, bundle) & False_() | can_use(Items.NAYRUS_LOVE, bundle)))),
-            # TODO Implement Dungeon Shuffle Option to replace False
         (Regions.DMC_LOWER_NEARBY, lambda bundle: False_()),
         (Regions.DMC_DISTANT_PLATFORM, lambda bundle: (fire_timer_above(bundle, 48) | hearts_above(bundle, 2)) | hearts_above(bundle, 3)),
     ])
@@ -154,9 +154,8 @@ def set_region_rules(world: "SohWorld") -> None:
          bundle)) | can_use(Items.HOVER_BOOTS, bundle) | can_use(Items.HOOKSHOT, bundle)),
         (Regions.DMC_UPPER_NEARBY, lambda bundle: is_adult(bundle)
          & has_item(LocalEvents.DMC_BEAN_PLANTED, bundle)),
-        (Regions.FIRE_TEMPLE_ENTRYWAY, lambda bundle: (is_child(bundle) & hearts_above(bundle, 3) & False_()) | (
-            # TODO Implement Dungeon Shuffle Option to replace False
-            is_adult(bundle) & fire_timer_above(bundle, 24))),
+         # TODO Implement Dungeon Shuffle Option to replace False
+        (Regions.FIRE_TEMPLE_ENTRYWAY, lambda bundle: (is_child(bundle) & hearts_above(bundle, 3) & False_()) | (is_adult(bundle) & fire_timer_above(bundle, 24))),
         (Regions.DMC_DISTANT_PLATFORM, lambda bundle: (fire_timer_above(bundle, 48) | hearts_above(bundle, 2)) & can_use(Items.DISTANT_SCARECROW, bundle)),
     ])
 

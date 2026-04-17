@@ -14,7 +14,7 @@ def set_region_rules(world: "SohWorld") -> None:
     # Events
     add_events(Regions.LON_LON_RANCH, world, [
         (EventLocations.LLR_TALON_RACE, Events.FREED_EPONA, lambda bundle: (has_item(Items.CHILD_WALLET, bundle)
-         | OptionFilter(SkipEponaRace, 1)) & can_play_song(Items.EPONAS_SONG, bundle) & is_adult(bundle) & at_day(bundle)),
+         | OptionFilter(SkipEponaRace, True)) & can_play_song(Items.EPONAS_SONG, bundle) & is_adult(bundle) & at_day(bundle)),
         (EventLocations.LLR_TIME_TRIAL, Events.GOTTEN_LINKS_COW, lambda bundle: has_item(Items.CHILD_WALLET,
          bundle) & can_play_song(Items.EPONAS_SONG, bundle) & is_adult(bundle) & at_day(bundle)),
     ])

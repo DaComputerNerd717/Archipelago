@@ -43,7 +43,7 @@ def set_region_rules(world: "SohWorld") -> None:
         (Regions.GV_GROTTO_LEDGE, lambda bundle: True_()),
         (Regions.GV_FORTRESS_SIDE, lambda bundle: (is_adult(bundle) & (
             can_use(Items.EPONA, bundle) | can_use(Items.LONGSHOT,
-                                                    bundle) | OptionFilter(FortressCarpenters, 2) | has_item(
+                                                    bundle) | OptionFilter(FortressCarpenters, FortressCarpenters.option_free) | has_item(
                 Events.RESCUED_ALL_CARPENTERS, bundle))) | (is_child(bundle) & can_use(Items.HOOKSHOT, bundle))),
         (Regions.GV_LOWER_STREAM, lambda bundle: is_child(bundle))
     ])
@@ -148,7 +148,7 @@ def set_region_rules(world: "SohWorld") -> None:
         (Regions.GV_UPPER_STREAM, lambda bundle: True_()),
         (Regions.GERUDO_VALLEY,
          lambda bundle: is_child(bundle) | can_use(Items.EPONA, bundle) | can_use(Items.LONGSHOT,
-                    bundle) | OptionFilter(FortressCarpenters, 2) | has_item(
+                    bundle) | OptionFilter(FortressCarpenters, FortressCarpenters.option_free) | has_item(
              Events.RESCUED_ALL_CARPENTERS, bundle)),
         (Regions.GV_CARPENTER_TENT, lambda bundle: is_adult(bundle)),
         (Regions.GV_STORMS_GROTTO, lambda bundle: is_adult(

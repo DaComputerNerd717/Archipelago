@@ -10,7 +10,7 @@ from worlds.AutoWorld import WebWorld, World
 from Fill import fill_restrictive
 from .location_access.overworld.castle_grounds import LocalEvents
 from .Items import SohItem, item_data_table, item_table, item_name_groups, progressive_items
-from .Locations import location_table, location_name_groups, token_amounts, SohLocData, location_data_table
+from .Locations import location_table, token_amounts, SohLocData, location_data_table, create_location_groups
 from .Options import SohOptions, soh_option_groups
 from .Regions import create_regions_and_locations, place_locked_items
 from .Enums import *
@@ -25,6 +25,8 @@ from .UniversalTracker import setup_options_from_slot_data
 from settings import Group, Bool
 from Options import OptionError
 from .LogicHelpers import wallet_capacities
+from rule_builder.rules import Has, CanReachLocation, Rule, True_
+from worlds.LauncherComponents import Component, components, Type, launch as launch_component
 
 import logging
 logger = logging.getLogger("SOH_OOT")
@@ -62,8 +64,14 @@ class SohSettings(Group):
         By default when an item can't be placed in prefill it will be added to the item pool as a backup. This disables that behavoir.
         """
 
+    class SOHInstallPath(str):
+        """
+        Where the game is installed. Used for opening the game through the AP launcher or Webhost
+        """
+
     allow_true_no_logic: AllowTrueNoLogic | bool = False
     disable_fill_overflow: DisableFillOverflow | bool = False
+    soh_install_path: SOHInstallPath | None = None
 
 
 class SohWorld(CachedRuleBuilderWorld):
@@ -77,7 +85,7 @@ class SohWorld(CachedRuleBuilderWorld):
     location_name_to_id = location_table
     item_name_to_id = item_table
     item_name_groups = item_name_groups
-    location_name_groups = location_name_groups
+    location_name_groups = create_location_groups()
 
     # Universal Tracker stuff, does not do anything in normal gen
     glitches_item_name = Items.GLITCHED
@@ -92,7 +100,6 @@ class SohWorld(CachedRuleBuilderWorld):
         self.shop_prices = dict[Locations, int]()
         self.shop_vanilla_items = dict[str, str]()
         self.triforce_pieces_required: int = 0
-        self.vanilla_progressive_skulltula_count: int = 0
         self.randomized_progressive_skulltula_count: int = 0
         self.ganons_trials = list[GanonsTrials]()
         self.pre_fill_pool = list[Items]()
@@ -168,14 +175,13 @@ class SohWorld(CachedRuleBuilderWorld):
                                                self.options.ganons_castle_boss_key_skull_tokens_required.value if self.options.ganons_castle_boss_key.value == 7 else 0, turn_in_amount)
 
         if self.options.shuffle_skull_tokens:
+            vanilla_progressive_skulltula_count = 0
             if self.options.shuffle_skull_tokens == "dungeon":
-                self.vanilla_progressive_skulltula_count = max(progressive_skulltula_count - int(TokenCounts.DUNGEON), 0)
+                vanilla_progressive_skulltula_count = max(progressive_skulltula_count - int(TokenCounts.DUNGEON), 0)
             elif self.options.shuffle_skull_tokens == "overworld":
-                self.vanilla_progressive_skulltula_count = max(progressive_skulltula_count - int(TokenCounts.OVERWORLD), 0)
+                vanilla_progressive_skulltula_count = max(progressive_skulltula_count - int(TokenCounts.OVERWORLD), 0)
                 
-            self.randomized_progressive_skulltula_count = progressive_skulltula_count - self.vanilla_progressive_skulltula_count
-        else:
-            self.vanilla_progressive_skulltula_count = progressive_skulltula_count
+            self.randomized_progressive_skulltula_count = progressive_skulltula_count - vanilla_progressive_skulltula_count
 
         # Figure out Keyring Situation
         key_ring_options: list = [self.options.gerudo_fortress_key_ring, self.options.forest_temple_key_ring, self.options.fire_temple_key_ring, self.options.water_temple_key_ring,
@@ -262,12 +268,13 @@ class SohWorld(CachedRuleBuilderWorld):
     def get_filler_item_name(self) -> str:
         return get_filler_item(self)
 
-    def soh_set_completion_rule(self) -> None:
+    def set_completion_rule(self, goal: Rule = None) -> None:
         if not self.options.true_no_logic:
             # Actual completion condition.
-            self.set_completion_rule(Has(Events.GAME_COMPLETED))
-            # self.multiworld.completion_condition[self.player] = lambda state: state.has(
-            #     Events.GAME_COMPLETED.value, self.player)
+            if goal == None:
+                super().set_completion_rule(Has(str(Events.GAME_COMPLETED)))
+            else:
+                super().set_completion_rule(goal)
 
     def get_empty_locations_from_list_shuffled(self, location_list: list[Locations]) -> list[Location]:
         locations = []
@@ -327,8 +334,6 @@ class SohWorld(CachedRuleBuilderWorld):
         self.soh_set_completion_rule()
 
     def pre_fill(self) -> None:
-        original_completion_goal = self.multiworld.completion_condition[self.player]
-
         pre_fill_own_dungeon_items(self)
         pre_fill_dungeon_rewards(self)
         pre_fill_songs(self)
@@ -336,7 +341,7 @@ class SohWorld(CachedRuleBuilderWorld):
         pre_fill_overworld_items(self)
         fill_shop_items(self)
 
-        self.multiworld.completion_condition[self.player] = original_completion_goal
+        self.set_completion_rule()
 
     def run_prefill(self, item_pool: list[Items], locations: list[Locations], prefill_state: CollectionState | None = None, goal: Callable[[CollectionState], bool] | None = None):
         # check if we're using specific collectionstate
@@ -348,11 +353,12 @@ class SohWorld(CachedRuleBuilderWorld):
             prefill_state = self.get_pre_fill_state()
         
         if goal is None:
+            goal = True_()
             # set region accessability of locations as the goal
-            accessibility_goal = {self.get_location(loc) for loc in locations}
-            goal = lambda state: all([state.can_reach(reg) for reg in accessibility_goal])
+            for reg in locations:
+                goal &= CanReachLocation(str(reg))
 
-        self.multiworld.completion_condition[self.player] = goal
+        self.set_completion_rule(goal)
 
         # get empty, non reserved locations
         empty_locations = self.get_empty_locations_from_list_shuffled(locations)
@@ -551,5 +557,13 @@ class SohWorld(CachedRuleBuilderWorld):
             "enable_all_tricks": self.options.enable_all_tricks.value,
             "tricks_in_logic": self.options.tricks_in_logic.value,
             "medallion_locked_trials": self.options.medallion_locked_trials.value,
-            "starting_hearts": self.options.starting_hearts.value
+            "starting_hearts": self.options.starting_hearts.value,
+            "archipelago_seed": self.random.randint(0, 4294967295) #This is a uint32_t in ship
         }
+
+def launch_client(*args: str):
+    from .Client import launch
+    launch_component(launch, name="Ship of Harkinian Client", args=args)
+
+if SohWorld.settings.soh_install_path is not None:
+    components.append(Component("Ship Of Harkinian Client", game_name="Ship of Harkinian", func=launch_client, component_type=Type.CLIENT, supports_uri=True))

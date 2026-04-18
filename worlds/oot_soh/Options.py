@@ -1660,7 +1660,7 @@ class SohOptions(PerGameCommonOptions):
         # If door of time is set to closed and dungeon rewards aren't shuffled or ocarinas aren't shuffled, force child spawn
         if self.door_of_time == DoorOfTime.option_closed and (
             any([self.shuffle_dungeon_rewards == ShuffleDungeonRewards.option_off,
-                    self.shuffle_ocarinas == ShuffleOcarinas,
+                    self.shuffle_ocarinas == ShuffleOcarinas.option_false,
                     self.shuffle_songs == ShuffleSongs.option_off])):
             self.starting_age.value = StartingAge.option_child
             return

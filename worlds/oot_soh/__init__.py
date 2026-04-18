@@ -11,7 +11,7 @@ from Fill import fill_restrictive
 from .location_access.overworld.castle_grounds import LocalEvents
 from .Items import SohItem, item_data_table, item_table, item_name_groups, progressive_items
 from .Locations import location_table, token_amounts, SohLocData, location_data_table, create_location_groups
-from .Options import SohOptions, soh_option_groups
+from .Options import SohOptions, soh_option_groups, wallet_capacities
 from .Regions import create_regions_and_locations, place_locked_items
 from .Enums import *
 from .ItemPool import create_item_pool, create_filler_item_pool, create_triforce_pieces, get_filler_item, give_starting_items
@@ -24,7 +24,6 @@ from .Presets import oot_soh_options_presets
 from .UniversalTracker import setup_options_from_slot_data
 from settings import Group, Bool
 from Options import OptionError
-from .LogicHelpers import wallet_capacities
 from rule_builder.rules import Has, CanReachLocation, Rule, True_
 from .Hints import CreateNonlocalHints, StaticHint
 from worlds.LauncherComponents import Component, components, Type, launch as launch_component

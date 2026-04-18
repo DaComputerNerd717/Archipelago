@@ -10,7 +10,6 @@ from .Enums import *
 from .Items import SohItem, item_data_table, ItemType, no_rules_bottles
 from rule_builder.rules import *
 from .Options import *
-
 if TYPE_CHECKING:
     from . import SohWorld
 
@@ -188,13 +187,6 @@ def has_item(item: Items | Events | StrEnum, bundle: tuple[Regions, "SohWorld"],
 
     return Has(item, count)
 
-
-wallet_capacities: dict[Items, int] = {
-    Items.CHILD_WALLET: 99,
-    Items.ADULT_WALLET: 200,
-    Items.GIANT_WALLET: 500,
-    Items.TYCOON_WALLET: 999
-}
 
 
 @dataclasses.dataclass

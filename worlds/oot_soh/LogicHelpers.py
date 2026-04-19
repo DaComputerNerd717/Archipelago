@@ -478,7 +478,7 @@ def can_shield(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 def take_damage(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return (can_use_any([Items.BOTTLE_WITH_FAIRY, Items.NAYRUS_LOVE], bundle)
-            | effective_health_above(bundle, 1))
+            | effective_health_at_least(bundle, 1))
 
 
 def can_do_trick(trick: Tricks, bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -970,7 +970,7 @@ def can_detonate_upright_bomb_flower(bundle: tuple[Regions, "SohWorld"]) -> Rule
             | has_item(Items.GORONS_BRACELET, bundle)
             | (can_do_trick(Tricks.BLUE_FIRE_MUD_WALLS, bundle)
                 & blue_fire(bundle)
-                & (effective_health_above(bundle, 1)
+                & (effective_health_at_least(bundle, 1)
                      | can_use(Items.NAYRUS_LOVE, bundle))))
 
 def item_group_count_enough(item_group: str, count: int):
@@ -1003,16 +1003,16 @@ def can_spawn_soil_skull(bundle: tuple[Regions, "SohWorld"]) -> Rule:
     return is_child(bundle) & can_use(Items.BOTTLE_WITH_BUGS, bundle)
 
 
-def fire_timer_above(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
-    return can_use(Items.GORON_TUNIC, bundle) | (HeartsAbove(amount=int(math.ceil(amount/8))) & can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS, bundle))
+def fire_timer_at_least(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
+    return can_use(Items.GORON_TUNIC, bundle) | (HeartsAtLeast(amount=int(math.ceil(amount/8))) & can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS, bundle))
 
 
-def water_timer_above(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
-    return can_use(Items.ZORA_TUNIC, bundle) | (HeartsAbove(amount=int(math.ceil(amount/8))) & can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS, bundle))
+def water_timer_at_least(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
+    return can_use(Items.ZORA_TUNIC, bundle) | (HeartsAtLeast(amount=int(math.ceil(amount/8))) & can_do_trick(Tricks.FEWER_TUNIC_REQUIREMENTS, bundle))
 
 
 @dataclasses.dataclass
-class HeartsAbove(Rule, game="Ship of Harkinian"):
+class HeartsAtLeast(Rule, game="Ship of Harkinian"):
     amount: int
     def _instantiate(self, world: World) -> Rule.Resolved:
         return self.Resolved(player=world.player, amount = self.amount, caching_enabled=getattr(world, "rule_caching_enabled", False))
@@ -1052,8 +1052,8 @@ class HeartsAbove(Rule, game="Ship of Harkinian"):
         def __str__(self) -> str:
             return f"Has {self.amount} hearts or more"
 
-def hearts_above(bundle: tuple[Regions, "SohWorld"], amount) -> Rule:
-    return HeartsAbove(amount=amount)
+def hearts_at_least(bundle: tuple[Regions, "SohWorld"], amount) -> Rule:
+    return HeartsAtLeast(amount=amount)
 
 
 def can_open_bomb_grotto(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -1115,7 +1115,7 @@ def can_trigger_lacs(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 
 # TODO implement EffectiveHealth(); Returns 2 for now. Requires implementing a damage multiplier option
-def effective_health_above(bundle: tuple[Regions, "SohWorld"], count: int) -> Rule:
+def effective_health_at_least(bundle: tuple[Regions, "SohWorld"], count: int) -> Rule:
     if count <= 2:
         return True_()
     else:

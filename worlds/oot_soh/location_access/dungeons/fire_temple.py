@@ -31,12 +31,12 @@ def set_region_rules(world: "SohWorld") -> None:
     connect_regions(Regions.FIRE_TEMPLE_FIRST_ROOM, world, [
         (Regions.FIRE_TEMPLE_ENTRYWAY, lambda bundle: True_()),
         (Regions.FIRE_TEMPLE_NEAR_BOSS_ROOM,
-         lambda bundle: fire_timer_above(bundle, 24)),
+         lambda bundle: fire_timer_at_least(bundle, 24)),
         (Regions.FIRE_TEMPLE_LOOP_ENEMIES, lambda bundle: (can_use(Items.MEGATON_HAMMER, bundle) & (
             small_keys(Items.FIRE_TEMPLE_SMALL_KEY, 8, bundle) | is_fire_loop_unlocked(bundle)))),
         (Regions.FIRE_TEMPLE_LOOP_EXIT, lambda bundle: True_()),
         (Regions.FIRE_TEMPLE_BIG_LAVA_ROOM, lambda bundle: small_keys(
-            Items.FIRE_TEMPLE_SMALL_KEY, 2, bundle) & fire_timer_above(bundle, 24))
+            Items.FIRE_TEMPLE_SMALL_KEY, 2, bundle) & fire_timer_at_least(bundle, 24))
     ])
 
     # Fire Temple Near Boss Room
@@ -202,18 +202,18 @@ def set_region_rules(world: "SohWorld") -> None:
     # Locations
     add_locations(Regions.FIRE_TEMPLE_FIRE_PILLAR_ROOM, world, [
         (Locations.FIRE_TEMPLE_FIRE_PILLAR_ROOM_LEFT_HEART,
-         lambda bundle: fire_timer_above(bundle, 56)),
+         lambda bundle: fire_timer_at_least(bundle, 56)),
         (Locations.FIRE_TEMPLE_FIRE_PILLAR_ROOM_RIGHT_HEART,
-         lambda bundle: fire_timer_above(bundle, 56)),
+         lambda bundle: fire_timer_at_least(bundle, 56)),
         (Locations.FIRE_TEMPLE_FIRE_PILLAR_ROOM_BACK_HEART,
-         lambda bundle: fire_timer_above(bundle, 56)),
+         lambda bundle: fire_timer_at_least(bundle, 56)),
     ])
     # Connections
     connect_regions(Regions.FIRE_TEMPLE_FIRE_PILLAR_ROOM, world, [
         (Regions.FIRE_TEMPLE_BIG_LAVA_ROOM, lambda bundle: small_keys(
             Items.FIRE_TEMPLE_SMALL_KEY, 3, bundle)),
         (Regions.FIRE_TEMPLE_SHORTCUT_ROOM, lambda bundle:
-            (fire_timer_above(bundle, 56)  &
+            (fire_timer_at_least(bundle, 56)  &
              small_keys(Items.FIRE_TEMPLE_SMALL_KEY, 4, bundle)))
     ])
 
@@ -297,25 +297,25 @@ def set_region_rules(world: "SohWorld") -> None:
     # Locations
     add_locations(Regions.FIRE_TEMPLE_FIRE_WALL_CHASE, world, [
         (Locations.FIRE_TEMPLE_FIRE_WALL_CHASE_EAST_PILLAR_HEART, lambda bundle:
-            (fire_timer_above(bundle, 24)  &
+            (fire_timer_at_least(bundle, 24)  &
              (is_adult(bundle) |
               can_use(Items.BOOMERANG, bundle)))),
         (Locations.FIRE_TEMPLE_FIRE_WALL_CHASE_WEST_PILLAR_HEART, lambda bundle:
-            (fire_timer_above(bundle, 24)  &
+            (fire_timer_at_least(bundle, 24)  &
              (is_adult(bundle) |
               can_use(Items.BOOMERANG, bundle)))),
         (Locations.FIRE_TEMPLE_FIRE_WALL_CHASE_EXIT_PLATFORM_HEART,
-         lambda bundle: fire_timer_above(bundle, 24))
+         lambda bundle: fire_timer_at_least(bundle, 24))
     ])
     # Connections
     connect_regions(Regions.FIRE_TEMPLE_FIRE_WALL_CHASE, world, [
         (Regions.FIRE_TEMPLE_EAST_CENTRAL_ROOM, lambda bundle:
-            (fire_timer_above(bundle, 24)  &
+            (fire_timer_at_least(bundle, 24)  &
              small_keys(Items.FIRE_TEMPLE_SMALL_KEY, 6, bundle))),
         (Regions.FIRE_TEMPLE_MAP_REGION, lambda bundle: is_adult(bundle)),
         (Regions.FIRE_TEMPLE_BOULDER_MAZE_UPPER,
-         lambda bundle: fire_timer_above(bundle, 24) & is_adult(bundle)),
-        (Regions.FIRE_TEMPLE_CORRIDOR, lambda bundle: fire_timer_above(bundle, 24) & is_adult(
+         lambda bundle: fire_timer_at_least(bundle, 24) & is_adult(bundle)),
+        (Regions.FIRE_TEMPLE_CORRIDOR, lambda bundle: fire_timer_at_least(bundle, 24) & is_adult(
             bundle) & small_keys(Items.FIRE_TEMPLE_SMALL_KEY, 7, bundle))
     ])
 
@@ -541,7 +541,7 @@ def set_region_rules(world: "SohWorld") -> None:
     # Events
     add_events(Regions.FIRE_TEMPLE_BOSS_ROOM, world, [
         (EventLocations.FIRE_TEMPLE_VOLVAGIA, Events.FIRE_TEMPLE_COMPLETED, lambda bundle:
-            fire_timer_above(bundle, 64) & can_kill_enemy(bundle, Enemies.VOLVAGIA))
+            fire_timer_at_least(bundle, 64) & can_kill_enemy(bundle, Enemies.VOLVAGIA))
     ])
     # Locations
     add_locations(Regions.FIRE_TEMPLE_BOSS_ROOM, world, [

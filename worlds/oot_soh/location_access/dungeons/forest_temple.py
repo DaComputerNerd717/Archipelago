@@ -266,15 +266,15 @@ def set_region_rules(world: "SohWorld") -> None:
     add_locations(Regions.FOREST_TEMPLE_WELL, world, [
         (Locations.FOREST_TEMPLE_WELL_CHEST, lambda bundle:
             ((can_open_underwater_chest(bundle) &
-              water_timer_above(bundle, 8)) |
+              water_timer_at_least(bundle, 8)) |
              has_item(LocalEvents.DRAINED_WELL, bundle))),
         (Locations.FOREST_TEMPLE_WELL_WEST_HEART, lambda bundle:
             ((can_use(Items.IRON_BOOTS, bundle) &
-              water_timer_above(bundle, 8)) |
+              water_timer_at_least(bundle, 8)) |
              has_item(LocalEvents.DRAINED_WELL, bundle))),
         (Locations.FOREST_TEMPLE_WELL_EAST_HEART, lambda bundle:
             ((can_use(Items.IRON_BOOTS, bundle) &
-              water_timer_above(bundle, 8)) |
+              water_timer_at_least(bundle, 8)) |
              has_item(LocalEvents.DRAINED_WELL, bundle)))
     ])
     # Connections

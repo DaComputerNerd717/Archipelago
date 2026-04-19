@@ -174,7 +174,7 @@ def set_region_rules(world: "SohWorld") -> None:
     # ZR From Shortcut
     # Connections
     connect_regions(Regions.ZR_FROM_SHORTCUT, world, [
-        (Regions.ZORA_RIVER, lambda bundle: (hearts_above(bundle, 0)) |
+        (Regions.ZORA_RIVER, lambda bundle: (hearts_at_least(bundle, 0)) |
          has_item(Items.BOTTLE_WITH_FAIRY, bundle) |
          has_item(Items.BRONZE_SCALE, bundle)),
         (Regions.LOST_WOODS, lambda bundle: has_item(Items.SILVER_SCALE, bundle) |

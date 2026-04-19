@@ -84,8 +84,8 @@ def set_region_rules(world: "SohWorld") -> None:
             blast_or_smash(bundle) | has_item(Items.GORONS_BRACELET, bundle) | has_item(LocalEvents.GC_CHILD_FIRE_LIT, bundle) | can_use(Items.FAIRY_BOW, bundle)))),
         (Regions.GC_DARUNIAS_CHAMBER, lambda bundle: (is_adult(bundle) & has_item(LocalEvents.GC_STOP_ROLLING_GORON_AS_ADULT,
          bundle)) | (is_child(bundle) & has_item(LocalEvents.GC_DARUNIAS_DOOR_OPENED_AS_CHILD, bundle))),
-        (Regions.GC_GROTTO_PLATFORM, lambda bundle: is_adult(bundle) & ((can_use(Items.SONG_OF_TIME, bundle) & ((effective_health_above(bundle, 3)) | can_use(Items.GORON_TUNIC, bundle) | can_use(Items.LONGSHOT, bundle) | can_use(Items.NAYRUS_LOVE, bundle))) | 
-            (effective_health_above(bundle, 0) & can_use(Items.GORON_TUNIC, bundle) & can_use(Items.HOOKSHOT, bundle)) | (can_use(Items.NAYRUS_LOVE, bundle) & can_use(Items.HOOKSHOT, bundle)) | (effective_health_above(bundle, 3) & can_use(Items.HOOKSHOT, bundle) & can_do_trick(Tricks.GC_GROTTO, bundle)))),
+        (Regions.GC_GROTTO_PLATFORM, lambda bundle: is_adult(bundle) & ((can_use(Items.SONG_OF_TIME, bundle) & ((effective_health_at_least(bundle, 3)) | can_use(Items.GORON_TUNIC, bundle) | can_use(Items.LONGSHOT, bundle) | can_use(Items.NAYRUS_LOVE, bundle))) | 
+            (effective_health_at_least(bundle, 0) & can_use(Items.GORON_TUNIC, bundle) & can_use(Items.HOOKSHOT, bundle)) | (can_use(Items.NAYRUS_LOVE, bundle) & can_use(Items.HOOKSHOT, bundle)) | (effective_health_at_least(bundle, 3) & can_use(Items.HOOKSHOT, bundle) & can_do_trick(Tricks.GC_GROTTO, bundle)))),
     ])
 
     # Goron City Medigoron
@@ -139,7 +139,7 @@ def set_region_rules(world: "SohWorld") -> None:
     # Connections
     connect_regions(Regions.GC_GROTTO_PLATFORM, world, [
         (Regions.GC_GROTTO, lambda bundle: True_()),
-        (Regions.GORON_CITY, lambda bundle: effective_health_above(bundle, 3) | can_use_any([Items.GORON_TUNIC, Items.NAYRUS_LOVE], bundle) | (
+        (Regions.GORON_CITY, lambda bundle: effective_health_at_least(bundle, 3) | can_use_any([Items.GORON_TUNIC, Items.NAYRUS_LOVE], bundle) | (
             (is_child(bundle) | can_use(Items.SONG_OF_TIME, bundle)) & can_use(Items.LONGSHOT, bundle)))
     ])
 

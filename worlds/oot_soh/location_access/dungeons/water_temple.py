@@ -77,7 +77,7 @@ def set_region_rules(world: "SohWorld") -> None:
         (Regions.WATER_TEMPLE_EAST_MIDDLE, lambda bundle: ((has_item(LocalEvents.WATER_LEVEL_LOW, bundle) |
                                                             has_item(LocalEvents.WATER_LEVEL_MIDDLE, bundle) |
                                                             (can_use(Items.IRON_BOOTS, bundle) &
-                                                             water_timer_above(bundle, 16))) &
+                                                             water_timer_at_least(bundle, 16))) &
                                                            can_use(Items.LONGSHOT, bundle))),
         (Regions.WATER_TEMPLE_WEST_MIDDLE, lambda bundle: (
             has_item(LocalEvents.WATER_LEVEL_MIDDLE, bundle))),
@@ -341,7 +341,7 @@ def set_region_rules(world: "SohWorld") -> None:
          lambda bundle: can_use(Items.HOOKSHOT, bundle)),
         (Regions.WATER_TEMPLE_CENTRAL_PILLAR_BASEMENT, lambda bundle: (has_item(LocalEvents.WATER_LEVEL_MIDDLE, bundle) &
                                                                        can_use(Items.IRON_BOOTS, bundle) &
-                                                                       water_timer_above(bundle, 40)))
+                                                                       water_timer_at_least(bundle, 40)))
     ])
 
     # Water Temple Central Pillar Upper
@@ -377,12 +377,12 @@ def set_region_rules(world: "SohWorld") -> None:
     add_locations(Regions.WATER_TEMPLE_CENTRAL_PILLAR_BASEMENT, world, [
         (Locations.WATER_TEMPLE_CENTRAL_PILLAR_CHEST, lambda bundle: (can_use(Items.HOOKSHOT, bundle) &
                                                                       can_use(Items.IRON_BOOTS, bundle) &
-                                                                      water_timer_above(bundle, 40)))
+                                                                      water_timer_at_least(bundle, 40)))
     ])
     # Connections
     connect_regions(Regions.WATER_TEMPLE_CENTRAL_PILLAR_BASEMENT, world, [
         (Regions.WATER_TEMPLE_CENTRAL_PILLAR_LOWER, lambda bundle: (can_use(Items.IRON_BOOTS, bundle) &
-                                                                    water_timer_above(bundle, 16)))
+                                                                    water_timer_at_least(bundle, 16)))
     ])
 
     # Water Temple East Middle
@@ -511,16 +511,16 @@ def set_region_rules(world: "SohWorld") -> None:
         (Locations.WATER_TEMPLE_RIVER_POT1, lambda bundle: can_break_pots(bundle)),
         (Locations.WATER_TEMPLE_RIVER_POT2, lambda bundle: can_break_pots(bundle)),
         (Locations.WATER_TEMPLE_RIVER_HEART1, lambda bundle: ((can_use(Items.IRON_BOOTS, bundle) &
-                                                               water_timer_above(bundle, 16)) |
+                                                               water_timer_at_least(bundle, 16)) |
                                                               has_item(Items.BRONZE_SCALE, bundle))),
         (Locations.WATER_TEMPLE_RIVER_HEART2, lambda bundle: ((can_use(Items.IRON_BOOTS, bundle) &
-                                                               water_timer_above(bundle, 16)) |
+                                                               water_timer_at_least(bundle, 16)) |
                                                               has_item(Items.BRONZE_SCALE, bundle))),
         (Locations.WATER_TEMPLE_RIVER_HEART3, lambda bundle: ((can_use(Items.IRON_BOOTS, bundle) &
-                                                               water_timer_above(bundle, 16)) |
+                                                               water_timer_at_least(bundle, 16)) |
                                                               has_item(Items.BRONZE_SCALE, bundle))),
         (Locations.WATER_TEMPLE_RIVER_HEART4, lambda bundle: ((can_use(Items.IRON_BOOTS, bundle) &
-                                                               water_timer_above(bundle, 16)) |
+                                                               water_timer_at_least(bundle, 16)) |
                                                               has_item(Items.BRONZE_SCALE, bundle)))
     ])
     # Connections

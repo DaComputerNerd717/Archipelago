@@ -9,6 +9,7 @@ from worlds.AutoWorld import LogicMixin, World
 from .Enums import *
 from .Items import SohItem, item_data_table, ItemType, no_rules_bottles
 from rule_builder.rules import *
+from rule_builder.field_resolvers import *
 from .Options import *
 if TYPE_CHECKING:
     from . import SohWorld
@@ -1076,9 +1077,9 @@ def trade_quest_step(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 @dataclasses.dataclass
 class ItemsPlusGregEnough(Rule, game="Ship of Harkinian"):
-    target: int
+    target: FieldResolver
     items: str | list[Items] | list[Events]
-    greg: bool
+    greg: FieldResolver
     def _instantiate(self, world: World) -> Rule.Resolved:
         world = cast("SohWorld", world)
         items = list()
@@ -1087,40 +1088,30 @@ class ItemsPlusGregEnough(Rule, game="Ship of Harkinian"):
                 items.extend(world.item_name_groups[group])
         else:
             items = list(self.items)
-        if self.greg:
+        if self.greg.resolve(world) == 1: #reward, for both classes
             items.append(Items.GREG_THE_GREEN_RUPEE)
         return HasFromList(*items, count=self.target).resolve(world)
 
 def can_build_rainbow_bridge(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    world = bundle[1]
-    greg: bool = False
-
-    if world.options.rainbow_bridge_greg_modifier == "reward":
-        greg = True
-
+    greg = FromOption(RainbowBridgeGregModifier)
     return OptionFilter(RainbowBridge, RainbowBridge.option_always_open) \
          | (OptionFilter(RainbowBridge, RainbowBridge.option_vanilla) & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle) & can_use(Items.LIGHT_ARROW, bundle)) \
-         | (OptionFilter(RainbowBridge, RainbowBridge.option_stones) & ItemsPlusGregEnough(target=world.options.rainbow_bridge_stones_required.value, items="Stones", greg=greg)) \
-         | (OptionFilter(RainbowBridge, RainbowBridge.option_medallions) & ItemsPlusGregEnough(target=world.options.rainbow_bridge_medallions_required.value, items = "Medallions", greg=greg)) \
-         | (OptionFilter(RainbowBridge, RainbowBridge.option_dungeon_rewards) & ItemsPlusGregEnough(target=world.options.rainbow_bridge_dungeon_rewards_required.value, items = "Stones,Medallions", greg=greg)) \
-         | (OptionFilter(RainbowBridge, RainbowBridge.option_dungeons) & ItemsPlusGregEnough(target=world.options.rainbow_bridge_dungeons_required.value, items=dungeon_events, greg=greg)) \
-         | (OptionFilter(RainbowBridge, RainbowBridge.option_tokens) & Has(Items.GOLD_SKULLTULA_TOKEN, count=world.options.rainbow_bridge_skull_tokens_required.value)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_stones) & ItemsPlusGregEnough(target=FromOption(RainbowBridgeStonesRequired), items="Stones", greg=greg)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_medallions) & ItemsPlusGregEnough(target=FromOption(RainbowBridgeMedallionsRequired), items = "Medallions", greg=greg)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_dungeon_rewards) & ItemsPlusGregEnough(target=FromOption(RainbowBridgeDungeonRewardsRequired), items = "Stones,Medallions", greg=greg)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_dungeons) & ItemsPlusGregEnough(target=FromOption(RainbowBridgeDungeonsRequired), items=dungeon_events, greg=greg)) \
+         | (OptionFilter(RainbowBridge, RainbowBridge.option_tokens) & Has(Items.GOLD_SKULLTULA_TOKEN, count=FromOption(RainbowBridgeSkullTokensRequired))) \
          | (OptionFilter(RainbowBridge, RainbowBridge.option_greg) & Has(Items.GREG_THE_GREEN_RUPEE))
 
 
 def can_trigger_lacs(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    world = bundle[1]
-    greg: bool = False
-
-    if world.options.ganons_castle_boss_key_greg_modifier == "reward":
-        greg = True
-
+    greg = FromOption(GanonsCastleBossKeyGregModifier)
     return (OptionFilter(GanonsCastleBossKey, [GanonsCastleBossKey.option_vanilla, GanonsCastleBossKey.option_anywhere, GanonsCastleBossKey.option_lacs_vanilla], operator="in") & has_item(Items.SHADOW_MEDALLION, bundle) & has_item(Items.SPIRIT_MEDALLION, bundle)) \
-         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_stones) & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_stones_required.value, items="Stones", greg=greg))\
-         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_medallions) & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_medallions_required.value, items="Medallions", greg=greg)) \
-         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_dungeon_rewards) & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeon_rewards_required.value, items="Stones,Medallions", greg=greg)) \
-         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_dungeons) & ItemsPlusGregEnough(target=world.options.ganons_castle_boss_key_dungeons_required.value, items=dungeon_events, greg=greg)) \
-         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_skull_tokens) & Has(Items.GOLD_SKULLTULA_TOKEN, count=world.options.ganons_castle_boss_key_skull_tokens_required.value))
+         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_stones) & ItemsPlusGregEnough(target=FromOption(GanonsCastleBossKeyStonesRequired), items="Stones", greg=greg))\
+         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_medallions) & ItemsPlusGregEnough(target=FromOption(GanonsCastleBossKeyMedallionsRequired), items="Medallions", greg=greg)) \
+         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_dungeon_rewards) & ItemsPlusGregEnough(target=FromOption(GanonsCastleBossKeyDungeonRewardsRequired), items="Stones,Medallions", greg=greg)) \
+         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_dungeons) & ItemsPlusGregEnough(target=FromOption(GanonsCastleBossKeyDungeonsRequired), items=dungeon_events, greg=greg)) \
+         | (OptionFilter(GanonsCastleBossKey, GanonsCastleBossKey.option_lacs_skull_tokens) & Has(Items.GOLD_SKULLTULA_TOKEN, count=FromOption(GanonsCastleBossKeySkullTokensRequired)))
 
 
 

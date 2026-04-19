@@ -1062,8 +1062,6 @@ def can_open_bomb_grotto(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 def trade_quest_step(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     # If adult trade shuffle is off, it'll automatically assume the whole trade quest is complete as soon as claim check is obtained.
-    if not bundle[1].options.shuffle_adult_trade_items:
-        return has_item(Items.CLAIM_CHECK, bundle)
 
     rule: Rule = False_()
     # Since the original used fallthrough, we will loop through all trade quest items after this point too
@@ -1073,7 +1071,8 @@ def trade_quest_step(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     pos = trade_items.index(item)
     for i in range(pos, len(trade_items)):
         rule |= has_item(trade_items[i], bundle)
-    return rule
+    return Filtered(has_item(Items.CLAIM_CHECK, bundle), options=[OptionFilter(ShuffleAdultTradeItems, False)]) \
+        | Filtered(rule, options=[OptionFilter(ShuffleAdultTradeItems, True)])
 
 @dataclasses.dataclass
 class ItemsPlusGregEnough(Rule, game="Ship of Harkinian"):

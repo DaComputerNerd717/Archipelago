@@ -235,7 +235,7 @@ def set_region_rules(world: "SohWorld") -> None:
                                                                                        (can_use(Items.FAIRY_BOW, bundle) |
                                                                                         can_use(Items.FAIRY_SLINGSHOT, bundle))))))),
         (Locations.GANONS_CASTLE_SPIRIT_TRIAL_INVISIBLE_CHEST, lambda bundle: (can_do_trick(Tricks.GANON_SPIRIT_TRIAL_HOOKSHOT, bundle) | can_use(Items.HOOKSHOT, bundle)) & (can_use(Items.BOMBCHUS_5, bundle) | (
-            can_do_trick(Tricks.HOOKSHOT_EXTENSION, bundle) & (can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT], bundle))) & (can_do_trick(Tricks.LENS_GANON, bundle) | can_use(Items.LENS_OF_TRUTH, bundle)))),
+            can_do_trick(Tricks.HOOKSHOT_EXTENSION, bundle) & (can_use_any([Items.FAIRY_BOW, Items.FAIRY_SLINGSHOT], bundle)))) & (can_do_trick(Tricks.LENS_GANON, bundle) | can_use(Items.LENS_OF_TRUTH, bundle))),
         (Locations.GANONS_CASTLE_SPIRIT_TRIAL_POT1, lambda bundle: (((can_do_trick(Tricks.GANON_SPIRIT_TRIAL_HOOKSHOT, bundle) &
                                                                       can_jump_slash_except_hammer(bundle)) |
                                                                      can_use(Items.HOOKSHOT, bundle)) &

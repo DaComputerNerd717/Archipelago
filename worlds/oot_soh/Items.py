@@ -321,6 +321,25 @@ item_data_table: dict[Items, SohItemData] = {
 item_table = {name.value: data.item_id for name,
               data in item_data_table.items() if data.item_id}
 
+# item_name_mapping = {
+#     Items.PROGRESSIVE_BOMB_BAG: [Items.BOMB_BAG, Items.BOMBCHU_BAG],
+#     Items.PROGRESSIVE_BOMBCHU: [Items.BOMBCHU_BAG],
+#     Items.PROGRESSIVE_BOW: [Items.FAIRY_BOW],
+#     #Items.PROGRESSIVE_GORON_SWORD: [Items.BIGGORONS_SWORD],
+#     Items.PROGRESSIVE_HOOKSHOT: [Items.HOOKSHOT, Items.LONGSHOT],
+#     Items.PROGRESSIVE_MAGIC_METER: [Items.MAGIC_SINGLE, Items.MAGIC_DOUBLE],
+#     Items.PROGRESSIVE_NUT_CAPACITY: [Items.NUTS, Items.DEKU_NUT_BAG],
+#     Items.PROGRESSIVE_OCARINA: [Items.FAIRY_OCARINA, Items.OCARINA_OF_TIME],
+#     Items.PROGRESSIVE_SCALE: [Items.BRONZE_SCALE, Items.SILVER_SCALE, Items.GOLDEN_SCALE],
+#     Items.PROGRESSIVE_SLINGSHOT: [Items.FAIRY_SLINGSHOT],
+#     Items.PROGRESSIVE_STICK_CAPACITY: [Items.DEKU_STICK_BAG, Items.STICKS],
+#     Items.PROGRESSIVE_WALLET: [Items.CHILD_WALLET, Items.ADULT_WALLET, Items.GIANT_WALLET, Items.TYCOON_WALLET, Items.WALLET_INF],
+#     Items.STRENGTH_UPGRADE: [Items.GORONS_BRACELET, Items.SILVER_GAUNTLETS, Items.GOLDEN_GAUNTLETS],
+# }
+
+# def create_item_mapping():
+#     return {item.value: keyItem.value for keyItem,items in item_name_mapping.items() for item in items}
+
 filler_items = [
     Items.RECOVERY_HEART,
     Items.BLUE_RUPEE,

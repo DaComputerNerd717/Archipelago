@@ -7,7 +7,7 @@ from BaseClasses import CollectionState, ItemClassification as IC, MultiWorld, L
 from .Locations import SohLocation
 from worlds.AutoWorld import LogicMixin, World
 from .Enums import *
-from .Items import SohItem, item_data_table, ItemType, no_rules_bottles
+from .Items import SohItem, item_data_table, ItemType, no_rules_bottles, progressive_items
 from rule_builder.rules import *
 from rule_builder.field_resolvers import *
 from .Options import *
@@ -186,6 +186,10 @@ def has_item(item: Items | Events | StrEnum, bundle: tuple[Regions, "SohWorld"],
     if item in (Items.BOTTLE_WITH_MILK, Items.BOTTLE_WITH_POE, Items.BOTTLE_WITH_RED_POTION, Items.EMPTY_BOTTLE):
         return has_bottle(bundle)
 
+    for prog,non_progs in progressive_items.items():
+        if item in non_progs:
+            return Has(prog, non_progs.index(item) + 1)
+
     return Has(item, count)
 
 
@@ -269,7 +273,7 @@ def bombchu_refill(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 
 def bombchus_enabled(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return Has(Items.BOMBCHU_BAG) | Has(Items.BOMB_BAG, options=[OptionFilter(BombchuBag, False)])
+    return Has(Items.PROGRESSIVE_BOMBCHU) | Has(Items.PROGRESSIVE_BOMB_BAG, options=[OptionFilter(BombchuBag, False)])
 
 
 ocarina_buttons_required: dict[str, list[str]] = {
@@ -353,12 +357,13 @@ class IsAdult(Rule, game="Ship of Harkinian"):
         #bundle pieces
         parent_region: Regions
         player: int
+        force_recalculate = True
         def _evaluate(self, state: CollectionState) -> bool:
             return state._soh_can_reach_as_age(self.parent_region, Ages.ADULT, self.player) # type: ignore
 
-        def item_dependencies(self) -> dict[str, set[int]]:
-            #For now, just update on every progression item, because it's very difficult to find the actual list
-            return {item_id.value: {id(self)} for item_id,item in item_data_table.items() if item.classification & IC.progression != 0}
+        # def item_dependencies(self) -> dict[str, set[int]]:
+        #     #For now, just update on every progression item, because it's very difficult to find the actual list
+        #     return {item_id.value: {id(self)} for item_id,item in item_data_table.items() if item.classification & IC.progression != 0}
         
         def region_dependencies(self) -> dict[str, set[int]]:
             return {self.parent_region.value: {id(self)}}
@@ -397,12 +402,14 @@ class IsChild(Rule, game="Ship of Harkinian"):
         #bundle pieces
         parent_region: Regions
         player: int
+        skip_cache = True
+        force_recalculate = True
         def _evaluate(self, state: CollectionState) -> bool:
             return state._soh_can_reach_as_age(self.parent_region, Ages.CHILD, self.player) # type: ignore
 
-        def item_dependencies(self) -> dict[str, set[int]]:
-            #For now, just update on every progression item, because it's very difficult to find the actual list
-            return {item_id.value: {id(self)} for item_id,item in item_data_table.items() if item.classification & IC.progression != 0}
+        # def item_dependencies(self) -> dict[str, set[int]]:
+        #     #For now, just update on every progression item, because it's very difficult to find the actual list
+        #     return {item_id.value: {id(self)} for item_id,item in item_data_table.items() if item.classification & IC.progression != 0}
         
         def region_dependencies(self) -> dict[str, set[int]]:
             return {self.parent_region.value: {id(self)}}

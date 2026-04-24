@@ -9,7 +9,7 @@ from rule_builder.rules import Has
 from worlds.AutoWorld import WebWorld, World
 from Fill import fill_restrictive
 from .location_access.overworld.castle_grounds import LocalEvents
-from .Items import SohItem, item_data_table, item_table, item_name_groups, progressive_items
+from .Items import SohItem, item_data_table, item_table, item_name_groups, progressive_items#, create_item_mapping
 from .Locations import location_table, token_amounts, SohLocData, location_data_table, create_location_groups
 from .Options import SohOptions, soh_option_groups, wallet_capacities
 from .Regions import create_regions_and_locations, place_locked_items
@@ -74,7 +74,7 @@ class SohSettings(Group):
     soh_install_path: SOHInstallPath | None = None
 
 
-class SohWorld(World):
+class SohWorld(CachedRuleBuilderWorld):
     """A PC Port of Ocarina of Time"""
 
     game = "Ship of Harkinian"
@@ -86,6 +86,7 @@ class SohWorld(World):
     item_name_to_id = item_table
     item_name_groups = item_name_groups
     location_name_groups = create_location_groups()
+    #item_mapping = create_item_mapping()
 
     # Universal Tracker stuff, does not do anything in normal gen
     glitches_item_name = Items.GLITCHED
@@ -339,10 +340,10 @@ class SohWorld(World):
         self.preplaced_items.extend(items)
 
         if self.settings.disable_fill_overflow:
-            fill_restrictive(self.multiworld, prefill_state, empty_locations, items, single_player_placement=True, lock=True)
+            fill_restrictive(self.multiworld, prefill_state, empty_locations, items, single_player_placement=True, lock=True, name="SoH_Prefill_No_Partial")
         else:
             # Add any unplaced items to the item pool
-            fill_restrictive(self.multiworld, prefill_state, empty_locations, items, single_player_placement=True, lock=True, allow_partial=True)
+            fill_restrictive(self.multiworld, prefill_state, empty_locations, items, single_player_placement=True, lock=True, allow_partial=True, name="SoH_Prefill_Partial")
             self.add_items_to_item_pool_list(items)
         
         for item in items:
@@ -353,13 +354,13 @@ class SohWorld(World):
         changed = super().collect(state, item)
         state._soh_stale[self.player] = True  # type: ignore
 
-        if item.name in progressive_items:
-            current_count = state.prog_items[self.player][item.name]
-            for non_prog_version in progressive_items[item.name]:
-                state.prog_items[self.player][non_prog_version] = 1
-                current_count -= 1
-                if not current_count:
-                    break
+        # if item.name in progressive_items:
+        #     current_count = state.prog_items[self.player][item.name]
+        #     for non_prog_version in progressive_items[item.name]:
+        #         state.prog_items[self.player][non_prog_version] = 1
+        #         current_count -= 1
+        #         if not current_count:
+        #             break
 
         if item.name == Items.HEART_CONTAINER:
             state.soh_heart_count[self.player] += 1  # type: ignore

@@ -126,13 +126,13 @@ def can_use_any(names: list[Items], bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 def has_item(item: Items | Events | StrEnum, bundle: tuple[Regions, "SohWorld"], count: int = 1) -> Rule:
     if item == Items.STICKS:
-        return HasAll(Events.CAN_FARM_STICKS, Items.DEKU_STICK_BAG)
+        return has_item(Events.CAN_FARM_STICKS, bundle) & has_item(Items.DEKU_STICK_BAG, bundle)
 
     if item in (Items.BOMBCHU_BAG, Items.BOMBCHUS_5, Items.BOMBCHUS_10, Items.BOMBCHUS_20):
         return bombchus_enabled(bundle)
 
     if item == Items.NUTS:
-        return HasAll(Events.CAN_FARM_NUTS, Items.DEKU_NUT_BAG)
+        return has_item(Events.CAN_FARM_NUTS, bundle) & has_item(Items.DEKU_NUT_BAG, bundle)
 
     if item == Items.MAGIC_BEAN:
         return HasAny(Items.MAGIC_BEAN_PACK, Events.CAN_BUY_BEANS)
@@ -199,17 +199,20 @@ class CanAffordSlot(Rule, game="Ship of Harkinian"):
     location: Locations
 
     def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
-        return self.Resolved(location = self.location, player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
+        return self.Resolved(location = self.location, player = world.player, sub_rule = lambda: has_item(Items(get_wallet_for_shop_slot(self.location, world)[0]), (None, None)).resolve(world),  # type: ignore
+                             caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
         location: Locations
         player: int
+        sub_rule: Callable[[], Rule.Resolved]
+
         def _evaluate(self, state: CollectionState) -> bool:
-            world = state.multiworld.worlds[self.player]
-            return Has(str(get_wallet_for_shop_slot(self.location, world)[0])).resolve(world)._evaluate(state)
+            #world = state.multiworld.worlds[self.player]
+            return self.sub_rule()._evaluate(state)
 
         def item_dependencies(self) -> dict[str, set[int]]:
-            return {str(Items.PROGRESSIVE_WALLET): set()}
+            return {str(Items.PROGRESSIVE_WALLET): {id(self)}}
         
         @override
         def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
@@ -239,7 +242,7 @@ class CanAffordSlot(Rule, game="Ship of Harkinian"):
             return f"Has wallet large enough to buy the item at {str(self.location)}"
 
 
-def get_wallet_for_shop_slot(location: Locations, world: "SohWorld") -> str:
+def get_wallet_for_shop_slot(location: Locations, world: "SohWorld") -> tuple[str, int]:
     assert location in world.shop_prices, f'Shop location "{str(location)}" does not have a price assigned'
 
     price = world.shop_prices.get(location, 500)
@@ -293,7 +296,7 @@ ocarina_buttons_required: dict[str, list[str]] = {
 
 
 def can_play_song(song: StrEnum, bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return HasAll(Items.FAIRY_OCARINA, song) & (OptionFilter(ShuffleOcarinaButtons, False) | HasAll(*ocarina_buttons_required[song]))
+    return has_item(Items.FAIRY_OCARINA, bundle) & has_item(song, bundle) & (OptionFilter(ShuffleOcarinaButtons, False) | HasAll(*ocarina_buttons_required[song]))
 
 
 def has_explosives(bundle: tuple[Regions, "SohWorld"]) -> Rule:
@@ -1159,7 +1162,7 @@ class CanWinTriforceHunt(Rule, game="Ship of Harkinian"):
             return state.prog_items[self.player][self.item_name] >= cast("SohWorld", state.multiworld.worlds[self.player]).triforce_pieces_required
 
         def item_dependencies(self) -> dict[str, set[int]]:
-            return {self.item_name: set()}
+            return {self.item_name: {id(self)}}
         
         @override
         def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:

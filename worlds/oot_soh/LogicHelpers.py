@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 import logging
 logger = logging.getLogger("SOH_OOT.Logic")
 
+child_age_dependent_rules: dict[Regions, list[Rule]] = {}
+adult_age_dependent_rules: dict[Regions, list[Rule]] = {}
 
 class rule_wrapper:
     def __init__(self, parent_region: Regions, rule: Callable[[tuple[Regions, "SohWorld"]], Rule], world: "SohWorld"):
@@ -30,7 +32,36 @@ class rule_wrapper:
         return wrapper.evaluate()
 
     def evaluate(self) -> Rule:
-        return self.rule((self.parent_region, self.world))
+        rule = self.rule((self.parent_region, self.world))
+        self.test_for_age_check(rule)
+        return rule 
+
+    def test_for_age_check(self, rule: Rule) -> set[Ages]:
+        ages: set[Ages] = set()
+        if isinstance(rule, IsChild):
+            ages.add(Ages.CHILD)
+        elif isinstance(rule, IsAdult):
+            ages.add(Ages.ADULT)
+        elif isinstance(rule, WrapperRule):
+            ages = self.test_for_age_check(rule.child)
+        elif isinstance(rule, NestedRule):
+            ages = set()
+            for sub_rule in rule.children:
+                ages.update(self.test_for_age_check(sub_rule))
+        
+        if Ages.CHILD in ages:
+            if self.parent_region in child_age_dependent_rules:
+                child_age_dependent_rules[self.parent_region].append(rule)
+            else:
+                child_age_dependent_rules[self.parent_region] = [rule]
+        if Ages.ADULT in ages:
+            if self.parent_region in adult_age_dependent_rules:
+                adult_age_dependent_rules[self.parent_region].append(rule)
+            else:
+                adult_age_dependent_rules[self.parent_region] = [rule]
+        return ages
+            
+
 
 
 def add_locations(parent_region: Regions, world: "SohWorld", locations: list[tuple[Locations, Rule | Callable[[tuple[Regions, "SohWorld"]], Rule]]]) -> None:
@@ -276,7 +307,7 @@ def bombchu_refill(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 
 
 def bombchus_enabled(bundle: tuple[Regions, "SohWorld"]) -> Rule:
-    return Has(Items.PROGRESSIVE_BOMBCHU) | Has(Items.PROGRESSIVE_BOMB_BAG, options=[OptionFilter(BombchuBag, False)])
+    return Has(Items.BOMBCHU_BAG) | Has(Items.PROGRESSIVE_BOMB_BAG, options=[OptionFilter(BombchuBag, False)])
 
 
 ocarina_buttons_required: dict[str, list[str]] = {
@@ -359,12 +390,13 @@ class IsAdult(Rule, game="Ship of Harkinian"):
     class Resolved(Rule.Resolved):
         #bundle pieces
         parent_region: Regions
-        player: int
-        force_recalculate = True
+        #player: int
+        #force_recalculate = True
         def _evaluate(self, state: CollectionState) -> bool:
             return state._soh_can_reach_as_age(self.parent_region, Ages.ADULT, self.player) # type: ignore
 
-        # def item_dependencies(self) -> dict[str, set[int]]:
+        def item_dependencies(self) -> dict[str, set[int]]:
+            return {}
         #     #For now, just update on every progression item, because it's very difficult to find the actual list
         #     return {item_id.value: {id(self)} for item_id,item in item_data_table.items() if item.classification & IC.progression != 0}
         
@@ -404,13 +436,13 @@ class IsChild(Rule, game="Ship of Harkinian"):
     class Resolved(Rule.Resolved):
         #bundle pieces
         parent_region: Regions
-        player: int
-        skip_cache = True
-        force_recalculate = True
+        #player: int
+        #force_recalculate = True
         def _evaluate(self, state: CollectionState) -> bool:
             return state._soh_can_reach_as_age(self.parent_region, Ages.CHILD, self.player) # type: ignore
 
-        # def item_dependencies(self) -> dict[str, set[int]]:
+        def item_dependencies(self) -> dict[str, set[int]]:
+            return {}
         #     #For now, just update on every progression item, because it's very difficult to find the actual list
         #     return {item_id.value: {id(self)} for item_id,item in item_data_table.items() if item.classification & IC.progression != 0}
         

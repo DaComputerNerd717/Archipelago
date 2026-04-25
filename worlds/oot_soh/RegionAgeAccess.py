@@ -1,6 +1,7 @@
 from collections import deque
 from BaseClasses import CollectionState, MultiWorld
 from worlds.AutoWorld import LogicMixin
+from .LogicHelpers import IsChild, IsAdult, child_age_dependent_rules, adult_age_dependent_rules
 from .Enums import Regions, Ages
 import copy
 
@@ -75,6 +76,16 @@ class SohAgeLogic(LogicMixin):
                     blocked.remove(connection)
                     blocked.update(new_region.exits)
                     queue.extend(new_region.exits)
+                    if age == Ages.CHILD:
+                        for dependent_rule in child_age_dependent_rules.values():
+                            rule_id = id(dependent_rule)
+                            if rule_id in self.rule_builder_cache[player]:
+                                del self.rule_builder_cache[player][rule_id]
+                    else:
+                        for dependent_rule in adult_age_dependent_rules.values():
+                            rule_id = id(dependent_rule)
+                            if rule_id in self.rule_builder_cache[player]:
+                                del self.rule_builder_cache[player][rule_id]
                     self.path[new_region] = (new_region.name, self.path.get(
                         connection, None))  # type: ignore
 

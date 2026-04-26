@@ -72,7 +72,7 @@ def add_locations(parent_region: Regions, world: "SohWorld", locations: list[tup
                 locationRule = loc[1]((parent_region, world)) if callable(loc[1]) else loc[1]
             else:
                 locationRule = True_()
-            test_for_age_check(locationRule, parent_region, world)
+            # test_for_age_check(locationRule, parent_region, world)
             mLocations.append((locationName, locationAddress, locationRule))
 
     if len(mLocations) > 0:
@@ -96,7 +96,7 @@ def connect_regions(parent_region: Regions, world: "SohWorld", child_regions: li
             regionRule = region[1]((parent_region, world)) if callable(region[1]) else region[1]  # type: ignore # noqa
         else:
             regionRule = True_()
-        test_for_age_check(regionRule, parent_region, world)
+        # test_for_age_check(regionRule, parent_region, world)
         world.create_entrance(parentRegion, childRegion, regionRule)
 
 
@@ -107,7 +107,7 @@ def add_events(parent_region: Regions, world: "SohWorld", events: list[tuple[Str
         eventName = str(event[0])
         eventItemName = str(event[1])
         eventRule = event[2]((parent_region, world)) if callable(event[2]) else event[2]
-        test_for_age_check(eventRule, parent_region, world)
+        # test_for_age_check(eventRule, parent_region, world)
         parentRegion.add_event(eventName, eventItemName, eventRule, SohLocation, SohItem)
 
 
@@ -234,10 +234,12 @@ class CanAffordSlot(Rule, game="Ship of Harkinian"):
     class Resolved(Rule.Resolved):
         location: Locations
         #player: int
-
+        
         def _evaluate(self, state: CollectionState) -> bool:
             world = state.multiworld.worlds[self.player]
-            return has_item(Items(get_wallet_for_shop_slot(self.location, world)[0]), (None, None)).resolve(world)._evaluate(state) #type: ignore
+            wallet = get_wallet_for_shop_slot(self.location, world)[0] #type: ignore
+            prog_wallet_count = progressive_items[Items.PROGRESSIVE_WALLET].index(wallet) + 1
+            return state.has(Items.PROGRESSIVE_WALLET, self.player, prog_wallet_count)
 
         def item_dependencies(self) -> dict[str, set[int]]:
             return {str(Items.PROGRESSIVE_WALLET): {id(self)}}
@@ -385,10 +387,9 @@ class IsAdult(Rule, game="Ship of Harkinian"):
         return self.Resolved(parent_region = self.parent_region, player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
-        #bundle pieces
         parent_region: Regions
         #player: int
-        #force_recalculate = True
+        force_recalculate = True
         def _evaluate(self, state: CollectionState) -> bool:
             return state._soh_can_reach_as_age(self.parent_region, Ages.ADULT, self.player) # type: ignore
 
@@ -431,10 +432,9 @@ class IsChild(Rule, game="Ship of Harkinian"):
         return self.Resolved(parent_region = self.parent_region, player = world.player, caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
-        #bundle pieces
         parent_region: Regions
         #player: int
-        #force_recalculate = True
+        force_recalculate = True
         def _evaluate(self, state: CollectionState) -> bool:
             return state._soh_can_reach_as_age(self.parent_region, Ages.CHILD, self.player) # type: ignore
 

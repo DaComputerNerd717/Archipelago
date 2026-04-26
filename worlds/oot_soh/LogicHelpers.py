@@ -17,8 +17,8 @@ if TYPE_CHECKING:
 import logging
 logger = logging.getLogger("SOH_OOT.Logic")
 
-child_age_dependent_rules: dict[Regions, list[Rule]] = {}
-adult_age_dependent_rules: dict[Regions, list[Rule]] = {}
+child_age_dependent_rules: dict[Regions, list[Rule.Resolved]] = {}
+adult_age_dependent_rules: dict[Regions, list[Rule.Resolved]] = {}
 
 class rule_wrapper:
     def __init__(self, parent_region: Regions, rule: Callable[[tuple[Regions, "SohWorld"]], Rule], world: "SohWorld"):
@@ -33,36 +33,34 @@ class rule_wrapper:
 
     def evaluate(self) -> Rule:
         rule = self.rule((self.parent_region, self.world))
-        self.test_for_age_check(rule)
+        #self.test_for_age_check(rule)
         return rule 
 
-    def test_for_age_check(self, rule: Rule) -> set[Ages]:
+
+def test_for_age_check(rule: Rule, parent_region: Regions, world: "SohWorld") -> set[Ages]:
         ages: set[Ages] = set()
         if isinstance(rule, IsChild):
             ages.add(Ages.CHILD)
         elif isinstance(rule, IsAdult):
             ages.add(Ages.ADULT)
         elif isinstance(rule, WrapperRule):
-            ages = self.test_for_age_check(rule.child)
+            ages = test_for_age_check(rule.child, parent_region, world)
         elif isinstance(rule, NestedRule):
             ages = set()
             for sub_rule in rule.children:
-                ages.update(self.test_for_age_check(sub_rule))
-        
+                ages.update(test_for_age_check(sub_rule, parent_region, world))
+        #print(f"Rule {str(rule)} required ages {[str(age).capitalize() for age in ages]}")
         if Ages.CHILD in ages:
-            if self.parent_region in child_age_dependent_rules:
-                child_age_dependent_rules[self.parent_region].append(rule)
+            if parent_region in child_age_dependent_rules:
+                child_age_dependent_rules[parent_region].append(rule.resolve(world))
             else:
-                child_age_dependent_rules[self.parent_region] = [rule]
+                child_age_dependent_rules[parent_region] = [rule.resolve(world)]
         if Ages.ADULT in ages:
-            if self.parent_region in adult_age_dependent_rules:
-                adult_age_dependent_rules[self.parent_region].append(rule)
+            if parent_region in adult_age_dependent_rules:
+                adult_age_dependent_rules[parent_region].append(rule.resolve(world))
             else:
-                adult_age_dependent_rules[self.parent_region] = [rule]
+                adult_age_dependent_rules[parent_region] = [rule.resolve(world)]
         return ages
-            
-
-
 
 def add_locations(parent_region: Regions, world: "SohWorld", locations: list[tuple[Locations, Rule | Callable[[tuple[Regions, "SohWorld"]], Rule]]]) -> None:
     mLocations : list[tuple[str, int | None, Rule | Callable[[CollectionState], bool]]] = list()
@@ -74,7 +72,7 @@ def add_locations(parent_region: Regions, world: "SohWorld", locations: list[tup
                 locationRule = loc[1]((parent_region, world)) if callable(loc[1]) else loc[1]
             else:
                 locationRule = True_()
-
+            test_for_age_check(locationRule, parent_region, world)
             mLocations.append((locationName, locationAddress, locationRule))
 
     if len(mLocations) > 0:
@@ -98,7 +96,7 @@ def connect_regions(parent_region: Regions, world: "SohWorld", child_regions: li
             regionRule = region[1]((parent_region, world)) if callable(region[1]) else region[1]  # type: ignore # noqa
         else:
             regionRule = True_()
-
+        test_for_age_check(regionRule, parent_region, world)
         world.create_entrance(parentRegion, childRegion, regionRule)
 
 
@@ -109,7 +107,7 @@ def add_events(parent_region: Regions, world: "SohWorld", events: list[tuple[Str
         eventName = str(event[0])
         eventItemName = str(event[1])
         eventRule = event[2]((parent_region, world)) if callable(event[2]) else event[2]
-        
+        test_for_age_check(eventRule, parent_region, world)
         parentRegion.add_event(eventName, eventItemName, eventRule, SohLocation, SohItem)
 
 
@@ -230,17 +228,16 @@ class CanAffordSlot(Rule, game="Ship of Harkinian"):
     location: Locations
 
     def _instantiate(self, world: "SohWorld") -> Rule.Resolved: # type: ignore
-        return self.Resolved(location = self.location, player = world.player, sub_rule = lambda: has_item(Items(get_wallet_for_shop_slot(self.location, world)[0]), (None, None)).resolve(world),  # type: ignore
+        return self.Resolved(location = self.location, player = world.player,
                              caching_enabled=getattr(world, "rule_caching_enabled", False))
 
     class Resolved(Rule.Resolved):
         location: Locations
-        player: int
-        sub_rule: Callable[[], Rule.Resolved]
+        #player: int
 
         def _evaluate(self, state: CollectionState) -> bool:
-            #world = state.multiworld.worlds[self.player]
-            return self.sub_rule()._evaluate(state)
+            world = state.multiworld.worlds[self.player]
+            return has_item(Items(get_wallet_for_shop_slot(self.location, world)[0]), (None, None)).resolve(world)._evaluate(state) #type: ignore
 
         def item_dependencies(self) -> dict[str, set[int]]:
             return {str(Items.PROGRESSIVE_WALLET): {id(self)}}

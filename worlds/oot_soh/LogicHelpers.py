@@ -123,7 +123,7 @@ def can_use(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
             rule &= is_child(bundle)
 
         if data[item].item_type == ItemType.magic:
-            rule &= has_item(Items.PROGRESSIVE_MAGIC_METER, bundle)
+            rule &= has_item(Items.MAGIC_SINGLE, bundle)
 
         if data[item].item_type == ItemType.song:
             rule &= can_play_song(item, bundle)

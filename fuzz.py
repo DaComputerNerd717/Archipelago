@@ -619,9 +619,9 @@ def gen_wrapper(yaml_path, apworld_name, i, args, queue, tmp):
                 for hook in MP_HOOKS:
                     outcome, raised = hook.reclassify_outcome(outcome, raised)
 
-                if outcome == GenOutcome.Success:
-                    print("Successful run")
-                    dump_generation_output(outcome, apworld_name, i, yaml_path, out_buf, extra=None)
+                if outcome == GenOutcome.Success and args.include_successes:
+                    #print("Successful run")
+                    dump_generation_output(outcome, apworld_name, i, yaml_path, out_buf, extra=None, include_successes=True)
                     return outcome
 
                 if outcome == GenOutcome.OptionError and not args.dump_ignored:
@@ -641,8 +641,10 @@ def gen_wrapper(yaml_path, apworld_name, i, args, queue, tmp):
         raise FuzzerException("Fuzzer error", out_buf) from e
 
 
-def dump_generation_output(outcome, apworld_name, i, yamls_dir, out_buf, extra=None):
+def dump_generation_output(outcome, apworld_name, i, yamls_dir, out_buf, extra=None, include_successes = False):
     if outcome == GenOutcome.Success:
+        if not include_successes:
+            return
         error_ty = "success"
     elif outcome == GenOutcome.OptionError:
         error_ty = "ignored"
@@ -691,7 +693,8 @@ def gen_callback(yamls_dir, apworld_name, i, args, outcome):
         SUBMITTED -= 1
 
         if outcome == GenOutcome.Success:
-            REPORT[apworld_name]["success"][""].append(i)
+            if args.include_successes:
+                REPORT[apworld_name]["success"][""].append(i)
             SUCCESS += 1
             if IS_TTY:
                 print(".", end="")
@@ -1039,6 +1042,7 @@ if __name__ == "__main__":
                         help="Directory of YAML files to sample from instead of generating random YAMLs. Each generation picks N (see -n) random files from the directory. Incompatible with -g and -m")
     parser.add_argument("--hook", action="append", default=[])
     parser.add_argument("--skip-output", default=False, action="store_true")
+    parser.add_argument("-s", "--include-successes", default=False, action="store_true")
 
     args = parser.parse_args()
 

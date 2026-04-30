@@ -427,7 +427,6 @@ class IsChild(Rule, game="Ship of Harkinian"):
 
     class Resolved(Rule.Resolved):
         parent_region: Regions
-        #player: int
         force_recalculate = True
         def _evaluate(self, state: CollectionState) -> bool:
             return state._soh_can_reach_as_age(self.parent_region, Ages.CHILD, self.player) # type: ignore

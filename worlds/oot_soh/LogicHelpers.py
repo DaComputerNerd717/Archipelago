@@ -48,7 +48,6 @@ def test_for_age_check(rule: Rule, parent_region: Regions, world: "SohWorld") ->
             ages = set()
             for sub_rule in rule.children:
                 ages.update(test_for_age_check(sub_rule, parent_region, world))
-        #print(f"Rule {str(rule)} required ages {[str(age).capitalize() for age in ages]}")
         if Ages.CHILD in ages:
             if parent_region in child_age_dependent_rules:
                 child_age_dependent_rules[parent_region].append(rule.resolve(world))

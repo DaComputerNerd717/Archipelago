@@ -40,16 +40,6 @@ class SohAgeLogic(LogicMixin):
         self._soh_child_blocked_regions[player] = set()
         self._soh_adult_blocked_regions[player] = set()
         self._soh_stale[player] = True
-        # for dependent_rules in child_age_dependent_rules.values():
-        #     for dependent_rule in dependent_rules:
-        #         rule_id = id(dependent_rule)
-        #         if rule_id in self.rule_builder_cache[player]:
-        #             del self.rule_builder_cache[player][rule_id]
-        # for dependent_rules in adult_age_dependent_rules.values():
-        #     for dependent_rule in dependent_rules:
-        #         rule_id = id(dependent_rule)
-        #         if rule_id in self.rule_builder_cache[player]:
-        #             del self.rule_builder_cache[player][rule_id]
 
     def _soh_update_age_reachable_regions(self, player):
         self._soh_stale[player] = False

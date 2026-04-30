@@ -86,7 +86,6 @@ class SohWorld(CachedRuleBuilderWorld):
     item_name_to_id = item_table
     item_name_groups = item_name_groups
     location_name_groups = create_location_groups()
-    #item_mapping = create_item_mapping()
 
     # Universal Tracker stuff, does not do anything in normal gen
     glitches_item_name = Items.GLITCHED

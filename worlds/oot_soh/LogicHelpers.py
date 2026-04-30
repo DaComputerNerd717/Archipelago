@@ -70,7 +70,6 @@ def add_locations(parent_region: Regions, world: "SohWorld", locations: list[tup
                 locationRule = loc[1]((parent_region, world)) if callable(loc[1]) else loc[1]
             else:
                 locationRule = True_()
-            # test_for_age_check(locationRule, parent_region, world)
             mLocations.append((locationName, locationAddress, locationRule))
 
     if len(mLocations) > 0:

@@ -872,10 +872,11 @@ def can_kill_enemy(bundle: tuple[Regions, "SohWorld"], enemy: Enemies, distance:
 
 
 def has_boss_soul(soul: Items, bundle: tuple[Regions, "SohWorld"]):
-    soulsanity = bundle[1].options.shuffle_boss_souls
-    if soulsanity == "off" or (soul == Items.GANONS_SOUL and soulsanity == "on"):
-        return True_()
-    return has_item(soul, bundle)
+    # only check for possesion of gannons soul if the option 'on_plus_ganons' is selected
+    if soul == Items.GANONS_SOUL:
+        return OptionsFilter(ShuffleBossSouls, ShuffleBossSouls.off) | OptionsFilter(ShuffleBossSouls, ShuffleBossSouls.on) | has_item(soul, bundle)
+        
+    return OptionFilter(ShuffleBossSouls, ShuffleBossSouls.off) | has_item(soul, bundle)
 
 
 def can_pass_enemy(bundle: tuple[Regions, "SohWorld"], enemy: Enemies,

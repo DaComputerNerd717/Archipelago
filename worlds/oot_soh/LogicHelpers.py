@@ -33,7 +33,6 @@ class rule_wrapper:
 
     def evaluate(self) -> Rule:
         rule = self.rule((self.parent_region, self.world))
-        #self.test_for_age_check(rule)
         return rule 
 
 

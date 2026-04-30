@@ -391,8 +391,6 @@ class IsAdult(Rule, game="Ship of Harkinian"):
 
         def item_dependencies(self) -> dict[str, set[int]]:
             return {}
-        #     #For now, just update on every progression item, because it's very difficult to find the actual list
-        #     return {item_id.value: {id(self)} for item_id,item in item_data_table.items() if item.classification & IC.progression != 0}
         
         def region_dependencies(self) -> dict[str, set[int]]:
             return {self.parent_region.value: {id(self)}}

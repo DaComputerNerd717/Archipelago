@@ -93,7 +93,6 @@ def connect_regions(parent_region: Regions, world: "SohWorld", child_regions: li
             regionRule = region[1]((parent_region, world)) if callable(region[1]) else region[1]  # type: ignore # noqa
         else:
             regionRule = True_()
-        # test_for_age_check(regionRule, parent_region, world)
         world.create_entrance(parentRegion, childRegion, regionRule)
 
 

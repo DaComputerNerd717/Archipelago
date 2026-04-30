@@ -78,19 +78,6 @@ class SohAgeLogic(LogicMixin):
                     queue.extend(new_region.exits)
                     self.path[new_region] = (new_region.name, self.path.get(
                         connection, None))  # type: ignore
-                    # if age == Ages.CHILD:
-                    #     for dependent_rule in child_age_dependent_rules[new_region]:
-                    #         print("Reached here (child)")
-                    #         rule_id = id(dependent_rule)
-                    #         if rule_id in self.rule_builder_cache[player]:
-                    #             del self.rule_builder_cache[player][rule_id]
-                    # else:
-                    #     for dependent_rule in adult_age_dependent_rules[new_region]:
-                    #         print("Reached here (adult)")
-                    #         rule_id = id(dependent_rule)
-                    #         if rule_id in self.rule_builder_cache[player]:
-                    #             del self.rule_builder_cache[player][rule_id]
-                    
 
     def _soh_can_reach_as_age(self, region: Regions, age: Ages, player: int):
         if self._soh_age[player] == Ages.null:

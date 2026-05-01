@@ -7,10 +7,11 @@ from BaseClasses import CollectionState, ItemClassification as IC, MultiWorld, L
 from .Locations import SohLocation
 from worlds.AutoWorld import LogicMixin, World
 from .Enums import *
-from .Items import SohItem, item_data_table, ItemType, no_rules_bottles, progressive_items
+from .Items import SohItem, item_data_table, ItemType, no_rules_bottles, GroupTag, progressive_items
 from rule_builder.rules import *
 from rule_builder.field_resolvers import *
 from .Options import *
+
 if TYPE_CHECKING:
     from . import SohWorld
 
@@ -1003,20 +1004,28 @@ def can_detonate_upright_bomb_flower(bundle: tuple[Regions, "SohWorld"]) -> Rule
                 & (effective_health_at_least(bundle, 1)
                      | can_use(Items.NAYRUS_LOVE, bundle))))
 
+  
+def get_group_name(item_group: GroupTag) -> str:
+    return item_group.name.replace('_', " ")
+
+
 def item_group_count_enough(item_group: str, count: int):
     return HasGroupUnique(item_group, count)
 
 
 def has_enough_ocarina_buttons(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
-    return OptionFilter(ShuffleOcarinaButtons, False) | HasGroup("Ocarina Buttons", amount)
+    group_name = get_group_name(GroupTag.Ocarina_Button)
+    return OptionFilter(ShuffleOcarinaButtons, False) | HasGroup(group_name, amount)
 
 
 def has_enough_stones(bundle: tuple[Regions, "SohWorld"], amount: int) -> Rule:
-    return HasGroupUnique("Stones", amount)
+    group_name = get_group_name(GroupTag.Spiritual_Stone)
+    return HasGroupUnique(group_name, amount)
 
 
 def has_enough_medallions(amount: int) -> Rule:
-    return HasGroupUnique("Medallions", amount)
+    group_name = get_group_name(GroupTag.Medallion)
+    return HasGroupUnique(group_name, amount)
 
 
 dungeon_events: list[Events] = [Events.DEKU_TREE_COMPLETED, Events.DODONGOS_CAVERN_COMPLETED,

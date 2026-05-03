@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Callable
 from collections import Counter
 
 from BaseClasses import CollectionState, ItemClassification as IC, MultiWorld, Location, Region
+from rule_builder.rules import Rule
 from .Locations import SohLocation
 from worlds.AutoWorld import LogicMixin, World
 from .Enums import *
@@ -290,12 +291,52 @@ def scarecrows_song(bundle: tuple[Regions, "SohWorld"]) -> Rule:
 def has_bottle(bundle: tuple[Regions, "SohWorld"]) -> Rule:  # soup
     return has_bottle_count(1)
 
+#Exists just to make the bottle rule somewhat more understandable in explains
+@dataclasses.dataclass()
+class HasBottleCount(WrapperRule, game="Ship of Harkinian"):
+    count: int
+
+    def _instantiate(self, world: World) -> Rule.Resolved:
+        return self.Resolved(
+            self.child.resolve(world),
+            player=world.player,
+            caching_enabled=getattr(world, "rule_caching_enabled", False),
+            count = self.count
+        )
+
+    class Resolved(WrapperRule.Resolved):
+        count: int
+        
+        @override
+        def explain_json(self, state: CollectionState | None = None) -> list[JSONMessagePart]:
+            verb = "Does not have at least " if state and not self(state) else "Has at least "
+            messages: list[JSONMessagePart] = [{"type": "text", "text": verb}]
+            if state:
+                color = "green" if self(state) else "salmon"
+                messages.append({"type": "text", "text": "reach "})
+                messages.append({"type": "color", "color": "cyan", "text": f"{self.count} "})
+                messages.append({"type": "text", "text": "emptiable bottles"})
+            else:
+                messages.append({"type": "text", "text": f"at least {self.count} bottles"})
+            return messages
+
+        @override
+        def explain_str(self, state: CollectionState | None = None) -> str:
+            if state is None:
+                return str(self)
+            return f"{"Has" if self(state) else "Does not have"} {self.count} or more bottles"
+
+        @override
+        def __str__(self) -> str:
+            return f"Has at least {self.count} bottle{"s" if self.count>1 else ""}"
+
 
 def has_bottle_count(target_count: int) -> Rule:
-    return (HasAll(Events.DELIVER_LETTER, Events.CAN_EMPTY_BIG_POES) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_BIG_POE, Items.BOTTLE_WITH_RUTOS_LETTER, count=target_count)) \
+    rule = (HasAll(Events.DELIVER_LETTER, Events.CAN_EMPTY_BIG_POES) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_BIG_POE, Items.BOTTLE_WITH_RUTOS_LETTER, count=target_count)) \
             | (Has(Events.DELIVER_LETTER) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_RUTOS_LETTER, count=target_count)) \
             | (Has(Events.CAN_EMPTY_BIG_POES) & HasFromList(*no_rules_bottles, Items.BOTTLE_WITH_BIG_POE, count=target_count)) \
             | HasFromList(*no_rules_bottles, count=target_count)
+    return HasBottleCount(rule, count = target_count)
 
 
 def bombchu_refill(bundle: tuple[Regions, "SohWorld"]) -> Rule:

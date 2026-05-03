@@ -140,7 +140,6 @@ def can_use(item: Items, bundle: tuple[Regions, "SohWorld"]) -> Rule:
     
     return rule
 
-
 def can_use_any(names: list[Items], bundle: tuple[Regions, "SohWorld"]) -> Rule:
     rule: Rule
     for i in range(len(names)):
